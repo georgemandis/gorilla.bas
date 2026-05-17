@@ -3,6 +3,7 @@ import {
   BIG_BANANA_EXPLOSION_MULT, EXPLOSION_RADIUS,
   RICOCHET_MAX_BOUNCES, WRAP_MAX_WRAPS, PORTAL_MAX_PASSES,
   CLUSTER_SPLIT_MS, WIDTH,
+  CLUSTER_SUB_COUNT, CLUSTER_FAN_DEGREES, CLUSTER_EXPLOSION_MULT, Y_SCALE,
 } from "./config";
 import { restartProjectile } from "./physics";
 
@@ -33,6 +34,50 @@ export function applyPowerUpToProjectile(
       break;
     // two_bananas, teleportation, confetti, poison: no projectile mods needed
   }
+}
+
+export function splitClusterBomb(
+  x: number,
+  y: number,
+  vx: number,
+  vy: number,
+  _wind: number,
+  gravity: number,
+  projT: number
+): Projectile[] {
+  const subs: Projectile[] = [];
+
+  // Calculate current velocity at split time (physics-convention)
+  // vy in physics = positive up; screen-space vy = (-vy + gravity * t) * Y_SCALE
+  const currentVyPhysics = -vy + gravity * projT;
+  const screenVy = currentVyPhysics * Y_SCALE;
+
+  // Work in screen space for angle/speed to avoid Y_SCALE distortion
+  const baseAngle = Math.atan2(-screenVy, vx);
+  const fanRad = (CLUSTER_FAN_DEGREES * Math.PI) / 180;
+  const speed = Math.sqrt(vx * vx + screenVy * screenVy) * 0.7;
+
+  const subCount = CLUSTER_SUB_COUNT as number;
+  for (let i = 0; i < subCount; i++) {
+    const frac = subCount === 1 ? 0 : (i / (subCount - 1)) - 0.5;
+    const angle = baseAngle + frac * fanRad;
+
+    const screenVxSub = Math.cos(angle) * speed;
+    const screenVySub = Math.sin(angle) * speed;
+    const sub: Projectile = {
+      startX: x,
+      startY: y,
+      vx: screenVxSub,
+      vy: screenVySub / Y_SCALE,
+      t: 0,
+      active: true,
+      isSubProjectile: true,
+      explosionRadius: EXPLOSION_RADIUS * CLUSTER_EXPLOSION_MULT,
+    };
+    subs.push(sub);
+  }
+
+  return subs;
 }
 
 export function handleRicochet(

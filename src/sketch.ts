@@ -27,7 +27,7 @@ import { randomName } from "./names";
 import { getCostume } from "./costumes";
 import { playSound, startPowerHum, updatePowerHum, stopPowerHum } from "./sound";
 import { trySpawnCrate, updateCrateFall, drawCrate, collectCrate, cycleSelectedPowerUp, consumeSelectedPowerUp } from "./powerups";
-import { applyPowerUpToProjectile, handleRicochet, handleWrapAround } from "./powerup-behaviors";
+import { applyPowerUpToProjectile, handleRicochet, handleWrapAround, splitClusterBomb } from "./powerup-behaviors";
 
 function createInitialState(): GameState {
   return {
@@ -204,10 +204,17 @@ const sketch = (p: p5) => {
         break;
 
       case "flight":
-        updateFlight();
+        if (state.projectile) {
+          updateFlight();
+        } else if (state.activeSubProjectiles.length > 0) {
+          updateSubProjectiles();
+        }
         updateTaunts(p1Input, p2Input);
         drawGameplay(p);
-        drawBanana(p);
+        if (state.projectile) {
+          drawBanana(p);
+        }
+        drawSubProjectiles(p);
         break;
 
       case "explosion":
@@ -440,6 +447,19 @@ const sketch = (p: p5) => {
     advanceProjectile(state.projectile);
     bananaRotation = (bananaRotation + 0.3) % (Math.PI * 2);
 
+    // Check cluster bomb split timer
+    if (state.projectile.splitTimer && p.millis() >= state.projectile.splitTimer) {
+      const splitPos = getProjectilePositionWithGravity(state.projectile, state.wind, state.gravity);
+      state.activeSubProjectiles = splitClusterBomb(
+        splitPos.x, splitPos.y,
+        state.projectile.vx, state.projectile.vy,
+        state.wind, state.gravity, state.projectile.t
+      );
+      state.projectile = null;
+      playSound("cluster_split");
+      return;
+    }
+
     const pos = getProjectilePositionWithGravity(state.projectile, state.wind, state.gravity);
     const result = checkCollision(pos.x, pos.y, state.projectile.t, state.buildings, state.gorillas, state.crate);
 
@@ -519,6 +539,76 @@ const sketch = (p: p5) => {
         state.phase = "explosion";
         playSound("hit");
         break;
+    }
+  }
+
+  function updateSubProjectiles() {
+    if (state.activeSubProjectiles.length === 0) return;
+
+    for (let i = state.activeSubProjectiles.length - 1; i >= 0; i--) {
+      const sub = state.activeSubProjectiles[i];
+      if (!sub.active) continue;
+
+      advanceProjectile(sub);
+      const subPos = getProjectilePositionWithGravity(sub, state.wind, state.gravity);
+      const result = checkCollision(subPos.x, subPos.y, sub.t, state.buildings, state.gorillas, state.crate);
+
+      switch (result.type) {
+        case "none":
+        case "sun":
+          break;
+        case "miss":
+          sub.active = false;
+          break;
+        case "building": {
+          const radius = sub.explosionRadius ?? EXPLOSION_RADIUS;
+          result.building.damage.push({ cx: subPos.x, cy: subPos.y, radius });
+          sub.active = false;
+          playSound("explosion");
+          break;
+        }
+        case "gorilla":
+          // Gorilla hit — end entire cluster, score the hit
+          state.activeSubProjectiles = [];
+          explosionX = subPos.x;
+          explosionY = subPos.y;
+          activeExplosionRadius = sub.explosionRadius ?? EXPLOSION_RADIUS;
+          state.explosionTimer = p.millis();
+          state.lastHitPlayer = result.gorilla.playerNum;
+          state.phase = "explosion";
+          playSound("hit");
+          return;
+        case "crate": {
+          const playerIdx = (state.currentPlayer - 1) as 0 | 1;
+          const collected = collectCrate(state, playerIdx);
+          if (collected) playSound("crate_collect");
+          sub.active = false;
+          break;
+        }
+      }
+    }
+
+    // Remove inactive subs
+    state.activeSubProjectiles = state.activeSubProjectiles.filter(s => s.active);
+
+    // All resolved — end turn
+    if (state.activeSubProjectiles.length === 0) {
+      resolveThrowEnd();
+    }
+  }
+
+  function drawSubProjectiles(p: p5) {
+    for (const sub of state.activeSubProjectiles) {
+      if (!sub.active) continue;
+      const subPos = getProjectilePositionWithGravity(sub, state.wind, state.gravity);
+      if (subPos.y < -50 || subPos.x < -10 || subPos.x > WIDTH + 10) continue;
+      p.push();
+      p.translate(subPos.x, subPos.y);
+      p.rotate(bananaRotation);
+      p.fill(255, 200, 0);
+      p.noStroke();
+      p.arc(0, 0, 5, 4, 0, Math.PI);
+      p.pop();
     }
   }
 
