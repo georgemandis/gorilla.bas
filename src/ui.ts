@@ -323,8 +323,8 @@ export function drawWindArrow(p: p5, wind: number): void {
   p.line(endX, y, endX + dir * 3, y + 2);
 }
 
-export function drawExplosion(p: p5, x: number, y: number, progress: number): void {
-  const radius = progress * 15;
+export function drawExplosion(p: p5, x: number, y: number, progress: number, maxRadius?: number): void {
+  const radius = progress * (maxRadius ?? 15);
   p.fill(255, 100, 0, 200);
   p.noStroke();
   p.circle(x, y, radius * 2);

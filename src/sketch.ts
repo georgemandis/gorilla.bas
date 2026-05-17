@@ -26,7 +26,8 @@ import {
 import { randomName } from "./names";
 import { getCostume } from "./costumes";
 import { playSound, startPowerHum, updatePowerHum, stopPowerHum } from "./sound";
-import { trySpawnCrate, updateCrateFall, drawCrate, collectCrate, cycleSelectedPowerUp } from "./powerups";
+import { trySpawnCrate, updateCrateFall, drawCrate, collectCrate, cycleSelectedPowerUp, consumeSelectedPowerUp } from "./powerups";
+import { applyPowerUpToProjectile } from "./powerup-behaviors";
 
 function createInitialState(): GameState {
   return {
@@ -79,6 +80,7 @@ const sketch = (p: p5) => {
   let prevDpadRight = false;
   let explosionX = 0;
   let explosionY = 0;
+  let activeExplosionRadius = EXPLOSION_RADIUS;
   let bananaRotation = 0;
   let lastAngles: [number, number] = [INITIAL_ANGLE_P1, INITIAL_ANGLE_P2];
   let loserFallOffset = 0;
@@ -211,7 +213,7 @@ const sketch = (p: p5) => {
       case "explosion":
         updateExplosion();
         drawGameplay(p);
-        drawExplosion(p, explosionX, explosionY, getExplosionProgress());
+        drawExplosion(p, explosionX, explosionY, getExplosionProgress(), activeExplosionRadius);
         break;
 
       case "victory":
@@ -409,6 +411,21 @@ const sketch = (p: p5) => {
     const startY = gorilla.y - Math.sin(angleRad) * launchOffset;
 
     state.projectile = createProjectile(startX, startY, state.angle, state.power);
+
+    // Apply active power-up
+    const activePowerUp = consumeSelectedPowerUp(state, (state.currentPlayer - 1) as 0 | 1);
+    applyPowerUpToProjectile(state.projectile, activePowerUp, p.millis());
+
+    // Set extra throw for two_bananas
+    if (activePowerUp === "two_bananas") {
+      state.extraThrowRemaining = true;
+    }
+
+    // Set extra throw for portal (needs second throw)
+    if (activePowerUp === "portal") {
+      state.extraThrowRemaining = true;
+    }
+
     state.phase = "flight";
     bananaRotation = 0;
     playSound("throw");
@@ -434,22 +451,21 @@ const sketch = (p: p5) => {
         break;
       case "miss":
         state.projectile = null;
-        switchPlayer();
-        state.angle = lastAngles[state.currentPlayer - 1];
-        state.phase = "aim";
-        trySpawnCrate(state, state.wind);
+        resolveThrowEnd();
         break;
-      case "building":
+      case "building": {
         explosionX = pos.x;
         explosionY = pos.y;
+        const buildingExpRadius = state.projectile!.explosionRadius ?? EXPLOSION_RADIUS;
+        activeExplosionRadius = buildingExpRadius;
         state.projectile = null;
         state.explosionTimer = p.millis();
         state.lastHitPlayer = null;
         state.phase = "explosion";
-        // Carve damage hole in the building
-        result.building.damage.push({ cx: pos.x, cy: pos.y, radius: EXPLOSION_RADIUS });
+        result.building.damage.push({ cx: pos.x, cy: pos.y, radius: buildingExpRadius });
         playSound("explosion");
         break;
+      }
       case "crate": {
         explosionX = pos.x;
         explosionY = pos.y;
@@ -469,6 +485,7 @@ const sketch = (p: p5) => {
       case "gorilla":
         explosionX = pos.x;
         explosionY = pos.y;
+        activeExplosionRadius = state.projectile!.explosionRadius ?? EXPLOSION_RADIUS;
         state.projectile = null;
         state.explosionTimer = p.millis();
         state.lastHitPlayer = result.gorilla.playerNum;
@@ -501,11 +518,8 @@ const sketch = (p: p5) => {
         loserFallOffset = 0;
         playSound("victory");
       } else {
-        // Building hit — switch player
-        switchPlayer();
-        state.angle = lastAngles[state.currentPlayer - 1];
-        state.phase = "aim";
-        trySpawnCrate(state, state.wind);
+        // Building hit — resolve throw
+        resolveThrowEnd();
       }
     }
   }
@@ -965,6 +979,21 @@ const sketch = (p: p5) => {
     state.isExtraThrow = false;
   }
 
+  function resolveThrowEnd() {
+    if (state.extraThrowRemaining) {
+      state.extraThrowRemaining = false;
+      state.isExtraThrow = true;
+      state.angle = lastAngles[state.currentPlayer - 1];
+      state.phase = "aim";
+    } else {
+      state.isExtraThrow = false;
+      switchPlayer();
+      state.angle = lastAngles[state.currentPlayer - 1];
+      state.phase = "aim";
+      trySpawnCrate(state, state.wind);
+    }
+  }
+
   function drawGameplay(p: p5) {
     // Ground
     const gnd = GROUND_COLORS[state.timeOfDay];
@@ -1081,12 +1110,16 @@ const sketch = (p: p5) => {
     // Only draw if reasonably on screen
     if (pos.y < -50 || pos.x < -10 || pos.x > WIDTH + 10) return;
 
+    const scale = state.projectile.explosionRadius
+      ? (state.projectile.explosionRadius / EXPLOSION_RADIUS)
+      : 1;
+
     p.push();
     p.translate(pos.x, pos.y);
     p.rotate(bananaRotation);
     p.fill(255, 255, 0);
     p.noStroke();
-    p.arc(0, 0, 8, 6, 0, Math.PI);
+    p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
     p.pop();
   }
 };
