@@ -55,6 +55,15 @@ function createInitialState(): GameState {
     powerDeadZoneTimer: 0,
     sunShocked: false,
     lastHitPlayer: null,
+    crate: null,
+    inventory: [[], []],
+    selectedPowerUp: null,
+    selectedSlotIndex: -1,
+    extraThrowRemaining: false,
+    isExtraThrow: false,
+    portals: [null, null],
+    activeSubProjectiles: [],
+    poisonTurns: [0, 0],
   };
 }
 

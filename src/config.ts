@@ -1,4 +1,4 @@
-import type { GravityPreset, CityTheme, TimeOfDay } from "./types";
+import type { GravityPreset, CityTheme, TimeOfDay, PowerUpType } from "./types";
 
 export const WIDTH = 336;
 export const HEIGHT = 262;
@@ -90,3 +90,23 @@ export const TIME_OF_DAY_OPTIONS: TimeOfDay[] = ["day", "night"];
 export const SUN_X = WIDTH / 2;
 export const SUN_Y = 25;
 export const SUN_RADIUS = 12;
+
+// Power-ups
+export const CRATE_SPAWN_CHANCE = 0.2; // 1 in 5
+export const CRATE_SIZE = 10;
+export const MAX_INVENTORY = 3;
+export const BIG_BANANA_EXPLOSION_MULT = 2.5;
+export const BIG_BANANA_VISUAL_SCALE = 2;
+export const CLUSTER_SPLIT_MS = 1200;
+export const CLUSTER_SUB_COUNT = 5;
+export const CLUSTER_FAN_DEGREES = 60;
+export const CLUSTER_EXPLOSION_MULT = 0.5;
+export const RICOCHET_MAX_BOUNCES = 3;
+export const WRAP_MAX_WRAPS = 3;
+export const PORTAL_MAX_PASSES = 3;
+export const POISON_TURNS = 3;
+export const POISON_POWER_CAP = 0.4;
+export const ALL_POWERUP_TYPES: PowerUpType[] = [
+  "big_banana", "two_bananas", "ricochet", "wrap_around",
+  "cluster_bomb", "teleportation", "portal", "confetti", "poison",
+];

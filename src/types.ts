@@ -46,6 +46,14 @@ export interface Projectile {
   vy: number;
   t: number;
   active: boolean;
+  // Power-up extensions
+  bouncesRemaining?: number;
+  wrapsRemaining?: number;
+  portalPassesRemaining?: number;
+  isSubProjectile?: boolean;
+  splitTimer?: number;        // millis() timestamp for cluster bomb
+  explosionRadius?: number;   // override for big banana / sub-projectiles
+  powerUpType?: PowerUpType;
 }
 
 export type GamePhase =
@@ -63,6 +71,27 @@ export type GamePhase =
 export type GravityPreset = "moon" | "earth" | "jupiter";
 export type TimeOfDay = "day" | "night";
 export type CityTheme = "classic" | "neon" | "brick" | "pastel";
+
+export type PowerUpType = "big_banana" | "two_bananas" | "ricochet" | "wrap_around"
+  | "cluster_bomb" | "teleportation" | "portal" | "confetti" | "poison";
+
+export interface PowerUpCrate {
+  x: number;
+  y: number;
+  targetY: number;
+  buildingIdx: number;
+  powerUp: PowerUpType;
+  falling: boolean;
+  fallY: number;
+  fallVx: number;
+}
+
+export interface Portal {
+  edge: "left" | "right";
+  x: number;
+  y: number;
+  color: "orange" | "blue";
+}
 
 export interface GameState {
   phase: GamePhase;
@@ -88,4 +117,13 @@ export interface GameState {
   powerDeadZoneTimer: number;
   sunShocked: boolean;
   lastHitPlayer: 1 | 2 | null;
+  crate: PowerUpCrate | null;
+  inventory: [PowerUpType[], PowerUpType[]];
+  selectedPowerUp: PowerUpType | null;
+  selectedSlotIndex: number;          // -1 = no selection, 0-2 = inventory slot
+  extraThrowRemaining: boolean;
+  isExtraThrow: boolean;
+  portals: [Portal | null, Portal | null];
+  activeSubProjectiles: Projectile[];
+  poisonTurns: [number, number];
 }
