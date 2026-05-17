@@ -7,8 +7,11 @@ import {
   VICTORY_DURATION_MS, ROUND_START_DELAY_MS,
   TARGET_SCORE_OPTIONS, GRAVITY_PRESET_OPTIONS,
   GORILLA_WIDTH, GORILLA_HEIGHT,
-  WINDOW_COLOR_LIT, WINDOW_COLOR_DARK,
   EXPLOSION_RADIUS, BOTTOM_LINE,
+  CITY_THEME_OPTIONS,
+  TIME_OF_DAY_OPTIONS,
+  WINDOW_COLORS, NEON_WINDOW_COLORS,
+  SKY_COLORS, GROUND_COLORS,
 } from "./config";
 import { getPlayerInput, getSystemInput } from "./input";
 import { generateCityscape, placeGorillas, generateWind } from "./city";
@@ -37,6 +40,8 @@ function createInitialState(): GameState {
     scores: [0, 0],
     targetScore: 3,
     gravityPreset: "earth",
+    timeOfDay: "day",
+    cityTheme: "classic",
     playerNames: [randomName(), randomName()],
     angle: INITIAL_ANGLE_P1,
     power: 0,
@@ -69,6 +74,8 @@ const sketch = (p: p5) => {
   let clouds: { x: number; y: number; w: number; h: number }[] = [];
   let prevB1 = false;
   let prevB2 = false;
+  let prevStart1P = false;
+  let prevStart2P = false;
   let prevTauntUp = false;
   let prevTauntSide = false;
   let tauntDanceTimer = 0;
@@ -104,7 +111,8 @@ const sketch = (p: p5) => {
   };
 
   p.draw = () => {
-    p.background(50, 50, 120);
+    const sky = SKY_COLORS[state.timeOfDay];
+    p.background(sky[0], sky[1], sky[2]);
     const sys = getSystemInput();
     const p1Input = getPlayerInput(1);
     const p2Input = getPlayerInput(2);
@@ -175,10 +183,12 @@ const sketch = (p: p5) => {
     prevA2 = p2Input.a;
     prevB1 = p1Input.b;
     prevB2 = p2Input.b;
+    prevStart1P = sys.onePlayer;
+    prevStart2P = sys.twoPlayer;
   };
 
   function updateTitle(sys: ReturnType<typeof getSystemInput>) {
-    if (sys.onePlayer || sys.twoPlayer) {
+    if ((sys.onePlayer && !prevStart1P) || (sys.twoPlayer && !prevStart2P)) {
       state.phase = "config";
     }
   }
@@ -214,7 +224,7 @@ const sketch = (p: p5) => {
     prevDpadRight = curRight;
 
     if (dpad === "up") configCursor = Math.max(0, configCursor - 1);
-    if (dpad === "down") configCursor = Math.min(1, configCursor + 1);
+    if (dpad === "down") configCursor = Math.min(3, configCursor + 1);
 
     if (dpad === "left" || dpad === "right") {
       const dir = dpad === "right" ? 1 : -1;
@@ -222,15 +232,23 @@ const sketch = (p: p5) => {
         const idx = TARGET_SCORE_OPTIONS.indexOf(state.targetScore);
         const newIdx = (idx + dir + TARGET_SCORE_OPTIONS.length) % TARGET_SCORE_OPTIONS.length;
         state.targetScore = TARGET_SCORE_OPTIONS[newIdx];
-      } else {
+      } else if (configCursor === 1) {
         const idx = GRAVITY_PRESET_OPTIONS.indexOf(state.gravityPreset);
         const newIdx = (idx + dir + GRAVITY_PRESET_OPTIONS.length) % GRAVITY_PRESET_OPTIONS.length;
         state.gravityPreset = GRAVITY_PRESET_OPTIONS[newIdx];
         state.gravity = GRAVITY_VALUES[state.gravityPreset];
+      } else if (configCursor === 2) {
+        const idx = TIME_OF_DAY_OPTIONS.indexOf(state.timeOfDay);
+        const newIdx = (idx + dir + TIME_OF_DAY_OPTIONS.length) % TIME_OF_DAY_OPTIONS.length;
+        state.timeOfDay = TIME_OF_DAY_OPTIONS[newIdx];
+      } else if (configCursor === 3) {
+        const idx = CITY_THEME_OPTIONS.indexOf(state.cityTheme);
+        const newIdx = (idx + dir + CITY_THEME_OPTIONS.length) % CITY_THEME_OPTIONS.length;
+        state.cityTheme = CITY_THEME_OPTIONS[newIdx];
       }
     }
 
-    if (sys.onePlayer || sys.twoPlayer) {
+    if ((sys.onePlayer && !prevStart1P) || (sys.twoPlayer && !prevStart2P)) {
       state.currentPlayer = Math.random() < 0.5 ? 1 : 2;
       startNewRound();
     }
@@ -250,7 +268,7 @@ const sketch = (p: p5) => {
   }
 
   function startNewRound() {
-    state.buildings = generateCityscape();
+    state.buildings = generateCityscape(state.cityTheme, state.timeOfDay);
     const positions = placeGorillas(state.buildings);
     state.gorillas[0].x = positions[0].x;
     state.gorillas[0].y = positions[0].y;
@@ -445,7 +463,7 @@ const sketch = (p: p5) => {
   }
 
   function updateGameOver(sys: ReturnType<typeof getSystemInput>) {
-    if (sys.onePlayer || sys.twoPlayer) {
+    if ((sys.onePlayer && !prevStart1P) || (sys.twoPlayer && !prevStart2P)) {
       state = createInitialState();
       lastAngles = [INITIAL_ANGLE_P1, INITIAL_ANGLE_P2];
     }
@@ -572,8 +590,9 @@ const sketch = (p: p5) => {
 
   function drawGameplay(p: p5) {
     // Ground
+    const gnd = GROUND_COLORS[state.timeOfDay];
     p.noStroke();
-    p.fill(30, 30, 50);
+    p.fill(gnd[0], gnd[1], gnd[2]);
     p.rect(0, BOTTOM_LINE, WIDTH, HEIGHT - BOTTOM_LINE);
 
     // Move and draw clouds (behind everything else, but in front of sky)
@@ -608,7 +627,7 @@ const sketch = (p: p5) => {
     }
 
     drawTauntBubble(p);
-    drawSun(p, state.sunShocked);
+    drawSun(p, state.sunShocked, state.timeOfDay);
     drawScores(p, state);
   }
 
@@ -631,13 +650,18 @@ const sketch = (p: p5) => {
   }
 
   function drawCity(p: p5, buildings: Building[]) {
+    const winColors = WINDOW_COLORS[state.timeOfDay];
+    const isNeon = state.cityTheme === "neon";
+    const sky = SKY_COLORS[state.timeOfDay];
+
     for (const b of buildings) {
       p.fill(b.color);
       p.noStroke();
       p.rect(b.x, b.y, b.width, b.height);
 
       // Draw windows (skip any inside damage holes)
-      for (const w of b.windows) {
+      for (let wi = 0; wi < b.windows.length; wi++) {
+        const w = b.windows[wi];
         let destroyed = false;
         for (const hole of b.damage) {
           const dx = w.x + 1.5 - hole.cx;
@@ -648,7 +672,11 @@ const sketch = (p: p5) => {
           }
         }
         if (!destroyed) {
-          p.fill(w.lit ? WINDOW_COLOR_LIT : WINDOW_COLOR_DARK);
+          if (w.lit && isNeon) {
+            p.fill(NEON_WINDOW_COLORS[wi % NEON_WINDOW_COLORS.length]);
+          } else {
+            p.fill(w.lit ? winColors.lit : winColors.dark);
+          }
           p.rect(w.x, w.y, 3, 5);
         }
       }
@@ -656,7 +684,7 @@ const sketch = (p: p5) => {
       // Draw damage holes: sky-colored circles
       for (const hole of b.damage) {
         p.noStroke();
-        p.fill(50, 50, 120);
+        p.fill(sky[0], sky[1], sky[2]);
         p.ellipse(hole.cx, hole.cy, hole.radius * 2, hole.radius * 2);
       }
     }

@@ -52,6 +52,8 @@ export type GamePhase =
   | "game_over";
 
 export type GravityPreset = "moon" | "earth" | "jupiter";
+export type TimeOfDay = "day" | "night";
+export type CityTheme = "classic" | "neon" | "brick" | "pastel";
 
 export interface GameState {
   phase: GamePhase;
@@ -63,6 +65,8 @@ export interface GameState {
   scores: [number, number];
   targetScore: number;
   gravityPreset: GravityPreset;
+  timeOfDay: TimeOfDay;
+  cityTheme: CityTheme;
   playerNames: [string, string];
   angle: number;
   power: number;

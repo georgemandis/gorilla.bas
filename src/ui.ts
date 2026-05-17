@@ -1,5 +1,5 @@
 import p5 from "p5";
-import type { GameState } from "./types";
+import type { GameState, TimeOfDay } from "./types";
 import {
   WIDTH,
   HEIGHT,
@@ -109,7 +109,13 @@ export function drawPowerMeter(p: p5, state: GameState): void {
   p.line(meterX - 2, markerY, meterX + POWER_METER_WIDTH + 2, markerY);
 }
 
-export function drawSun(p: p5, shocked: boolean): void {
+export function drawSun(p: p5, shocked: boolean, timeOfDay: TimeOfDay = "day"): void {
+  if (timeOfDay === "night") {
+    drawMoon(p, shocked);
+    drawStars(p);
+    return;
+  }
+
   p.fill(255, 220, 50);
   p.noStroke();
   p.circle(SUN_X, SUN_Y, SUN_RADIUS * 2);
@@ -138,6 +144,50 @@ export function drawSun(p: p5, shocked: boolean): void {
     p.stroke(0);
     p.strokeWeight(1);
     p.arc(SUN_X, SUN_Y + 2, 8, 6, 0, Math.PI);
+  }
+}
+
+function drawMoon(p: p5, shocked: boolean): void {
+  // Moon body — pale white/blue
+  p.fill(220, 220, 240);
+  p.noStroke();
+  p.circle(SUN_X, SUN_Y, SUN_RADIUS * 2);
+
+  // Crescent shadow — overlap a darker circle to create crescent shape
+  p.fill(10, 10, 35);
+  p.circle(SUN_X + 5, SUN_Y - 3, SUN_RADIUS * 1.7);
+
+  // Face on the lit part
+  p.fill(80, 80, 100);
+  p.noStroke();
+  p.circle(SUN_X - 4, SUN_Y - 2, 2);
+  p.circle(SUN_X - 1, SUN_Y - 2, 2);
+
+  if (shocked) {
+    p.circle(SUN_X - 2, SUN_Y + 3, 4);
+  } else {
+    p.noFill();
+    p.stroke(80, 80, 100);
+    p.strokeWeight(1);
+    p.arc(SUN_X - 2, SUN_Y + 1, 5, 4, 0, Math.PI);
+  }
+}
+
+// Deterministic stars based on position (so they don't flicker)
+function drawStars(p: p5): void {
+  p.noStroke();
+  // Use a simple seeded approach — fixed star positions
+  const stars = [
+    [20, 15], [55, 8], [90, 20], [130, 12], [170, 5],
+    [210, 18], [250, 10], [290, 22], [320, 8],
+    [35, 35], [75, 42], [115, 30], [200, 38], [270, 45],
+    [310, 32], [15, 50], [145, 48], [240, 55],
+  ];
+  for (const [sx, sy] of stars) {
+    // Twinkle effect
+    const twinkle = Math.sin(p.millis() / 500 + sx * 0.7) * 0.3 + 0.7;
+    p.fill(255, 255, 240, twinkle * 255);
+    p.circle(sx, sy, 1.5);
   }
 }
 
@@ -210,8 +260,8 @@ export function drawConfigScreen(
   p.noStroke();
   p.text("GORILLAS.BAS", WIDTH / 2, 15);
 
-  const startY = 50;
-  const lineH = 28;
+  const startY = 45;
+  const lineH = 24;
 
   p.textSize(6);
   p.textAlign(p.LEFT, p.TOP);
@@ -229,10 +279,12 @@ export function drawConfigScreen(
   p.textSize(5);
   p.text("(spin to re-roll)", 30, startY + lineH + 12);
 
-  const settingsY = startY + lineH * 3;
+  const settingsY = startY + lineH * 2.5;
   const settings = [
     { label: "POINTS TO WIN", value: String(state.targetScore) },
     { label: "GRAVITY", value: state.gravityPreset.toUpperCase() },
+    { label: "TIME", value: state.timeOfDay.toUpperCase() },
+    { label: "CITY", value: state.cityTheme.toUpperCase() },
   ];
 
   p.textSize(6);

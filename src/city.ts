@@ -1,16 +1,16 @@
-import type { Building, GameWindow } from "./types";
+import type { Building, CityTheme, GameWindow, TimeOfDay } from "./types";
 import {
   WIDTH,
   BOTTOM_LINE,
   MIN_BUILDING_WIDTH,
   MAX_BUILDING_WIDTH,
-  BUILDING_COLORS,
+  CITY_THEME_COLORS,
   GORILLA_HEIGHT,
 } from "./config";
 
 type SlopeType = "up" | "down" | "v" | "inv_v" | "v2" | "inv_v2";
 
-export function generateCityscape(): Building[] {
+export function generateCityscape(cityTheme: CityTheme = "classic", timeOfDay: TimeOfDay = "day"): Building[] {
   const buildings: Building[] = [];
   let x = 2;
 
@@ -49,8 +49,11 @@ export function generateCityscape(): Building[] {
     if (BOTTOM_LINE - bHeight < maxBuildingTop) bHeight = BOTTOM_LINE - maxBuildingTop;
     if (bHeight < 20) bHeight = 20;
 
-    const color = BUILDING_COLORS[Math.floor(Math.random() * BUILDING_COLORS.length)];
-    const windows = generateWindows(x, BOTTOM_LINE - bHeight, actualWidth, bHeight);
+    const colors = CITY_THEME_COLORS[cityTheme];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    // At night, more windows are lit (0.7 vs 0.6)
+    const litChance = timeOfDay === "night" ? 0.7 : 0.6;
+    const windows = generateWindows(x, BOTTOM_LINE - bHeight, actualWidth, bHeight, litChance);
 
     buildings.push({
       x,
@@ -68,7 +71,7 @@ export function generateCityscape(): Building[] {
   return buildings;
 }
 
-function generateWindows(bx: number, by: number, bw: number, bh: number): GameWindow[] {
+function generateWindows(bx: number, by: number, bw: number, bh: number, litChance = 0.6): GameWindow[] {
   const windows: GameWindow[] = [];
   const hSpacing = 8;
   const vSpacing = 10;
@@ -78,7 +81,7 @@ function generateWindows(bx: number, by: number, bw: number, bh: number): GameWi
       windows.push({
         x: wx,
         y: wy,
-        lit: Math.random() > 0.4,
+        lit: Math.random() < litChance,
       });
     }
   }
