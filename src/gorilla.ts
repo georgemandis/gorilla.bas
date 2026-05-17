@@ -4,7 +4,7 @@ import type { Gorilla, ArmState, GorillaCostume } from "./types";
 const DEFAULT_BODY = "#C8782A";
 const DEFAULT_EYE = "#FFFFFF";
 
-export function drawGorilla(p: p5, gorilla: Gorilla, costume?: GorillaCostume | null): void {
+export function drawGorilla(p: p5, gorilla: Gorilla, costume?: GorillaCostume | null, poisoned?: boolean): void {
   const { x, y, armState } = gorilla;
   const bodyColor = costume?.bodyColor ?? DEFAULT_BODY;
   const eyeColor = costume?.eyeColor ?? DEFAULT_EYE;
@@ -33,6 +33,13 @@ export function drawGorilla(p: p5, gorilla: Gorilla, costume?: GorillaCostume | 
 
   // Head
   p.rect(x + 5, y + 2, 10, 9);
+
+  // Poison green tint overlay
+  if (poisoned) {
+    p.fill(0, 180, 0, 80);
+    p.rect(x + 4, y + 10, 12, 10); // body tint
+    p.rect(x + 5, y + 2, 10, 9);   // head tint
+  }
 
   // Eyes
   if (costume?.accessory === "redeyes") {

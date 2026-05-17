@@ -6,7 +6,7 @@ function getCtx(): AudioContext {
   return ctx;
 }
 
-export type SoundName = "throw" | "explosion" | "victory" | "hit" | "aim_tick" | "power_lock" | "taunt_dance" | "taunt_bubble" | "bananality_omen" | "bananality_impact" | "bananality_reveal" | "crate_collect" | "crate_land" | "powerup_select" | "cluster_split" | "confetti_pop" | "teleport_zap";
+export type SoundName = "throw" | "explosion" | "victory" | "hit" | "aim_tick" | "power_lock" | "taunt_dance" | "taunt_bubble" | "bananality_omen" | "bananality_impact" | "bananality_reveal" | "crate_collect" | "crate_land" | "powerup_select" | "cluster_split" | "confetti_pop" | "teleport_zap" | "poison_hit";
 
 export function playSound(name: SoundName): void {
   try {
@@ -28,6 +28,7 @@ export function playSound(name: SoundName): void {
       case "cluster_split": playClusterSplit(); break;
       case "confetti_pop": playConfettiPop(); break;
       case "teleport_zap": playTeleportZap(); break;
+      case "poison_hit": playPoisonHit(); break;
     }
   } catch {
     // Audio not available — fail silently
@@ -420,4 +421,32 @@ function playPowerupSelect() {
   osc.connect(gain).connect(c.destination);
   osc.start();
   osc.stop(c.currentTime + 0.1);
+}
+
+function playPoisonHit() {
+  const c = getCtx();
+  const osc = c.createOscillator();
+  const gain = c.createGain();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(150, c.currentTime);
+  osc.frequency.linearRampToValueAtTime(100, c.currentTime + 0.3);
+  gain.gain.setValueAtTime(0.15, c.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.4);
+  osc.connect(gain).connect(c.destination);
+  osc.start();
+  osc.stop(c.currentTime + 0.4);
+
+  // Bubbles
+  [200, 250, 180, 220].forEach((freq, i) => {
+    const o = c.createOscillator();
+    const g = c.createGain();
+    o.type = "sine";
+    const t = c.currentTime + 0.05 + i * 0.08;
+    o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0.06, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+    o.connect(g).connect(c.destination);
+    o.start(t);
+    o.stop(t + 0.06);
+  });
 }

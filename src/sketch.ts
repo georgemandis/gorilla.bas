@@ -12,6 +12,7 @@ import {
   TIME_OF_DAY_OPTIONS,
   WINDOW_COLORS, NEON_WINDOW_COLORS,
   SKY_COLORS, GROUND_COLORS,
+  POISON_TURNS, POISON_POWER_CAP,
 } from "./config";
 import { getPlayerInput, getSystemInput } from "./input";
 import { generateCityscape, placeGorillas, generateWind, randomGorillaPlacements } from "./city";
@@ -364,6 +365,10 @@ const sketch = (p: p5) => {
   function updateRoundStart() {
     if (p.millis() - state.roundStartTimer > ROUND_START_DELAY_MS) {
       state.angle = lastAngles[state.currentPlayer - 1];
+      // Decrement poison for current player at round start
+      if (state.poisonTurns[state.currentPlayer - 1] > 0) {
+        state.poisonTurns[state.currentPlayer - 1]--;
+      }
       state.phase = "aim";
       trySpawnCrate(state, state.wind);
     }
@@ -405,6 +410,10 @@ const sketch = (p: p5) => {
     const activeTime = Math.max(0, elapsed - POWER_DEAD_ZONE_MS);
     const cycleProgress = (activeTime % POWER_CYCLE_MS) / POWER_CYCLE_MS;
     state.powerMeterValue = Math.abs(Math.sin(cycleProgress * Math.PI));
+    // Poison caps power
+    if (state.poisonTurns[state.currentPlayer - 1] > 0) {
+      state.powerMeterValue = Math.min(state.powerMeterValue, POISON_POWER_CAP);
+    }
     updatePowerHum(state.powerMeterValue);
 
     // Check for A release (after dead zone)
@@ -624,6 +633,18 @@ const sketch = (p: p5) => {
           // End turn via explosion phase (but no scoring)
           state.explosionTimer = p.millis();
           state.lastHitPlayer = null;
+          state.phase = "explosion";
+          break;
+        }
+        if (state.projectile?.powerUpType === "poison") {
+          const victimIdx = result.gorilla.playerNum === 1 ? 0 : 1;
+          state.poisonTurns[victimIdx] = POISON_TURNS;
+          state.projectile = null;
+          playSound("poison_hit");
+          explosionX = pos.x;
+          explosionY = pos.y;
+          state.explosionTimer = p.millis();
+          state.lastHitPlayer = null;  // no scoring
           state.phase = "explosion";
           break;
         }
@@ -993,7 +1014,7 @@ const sketch = (p: p5) => {
 
       // Draw gorillas (getting battered)
       for (let i = 0; i < 2; i++) {
-        drawGorilla(p, state.gorillas[i], costumes[i]);
+        drawGorilla(p, state.gorillas[i], costumes[i], state.poisonTurns[i] > 0);
       }
 
       // Evil sun/moon laughing maniacally
@@ -1202,6 +1223,11 @@ const sketch = (p: p5) => {
       state.phase = "aim";
     } else {
       state.isExtraThrow = false;
+      // Decrement poison for the player who is about to aim
+      const nextPlayerIdx = (state.currentPlayer === 1 ? 1 : 0) as 0 | 1;
+      if (state.poisonTurns[nextPlayerIdx] > 0) {
+        state.poisonTurns[nextPlayerIdx]--;
+      }
       switchPlayer();
       state.angle = lastAngles[state.currentPlayer - 1];
       state.phase = "aim";
@@ -1240,16 +1266,16 @@ const sketch = (p: p5) => {
         p.translate(g.x + GORILLA_WIDTH / 2, g.y + GORILLA_HEIGHT / 2 + loserFallOffset);
         p.scale(1, -1);
         p.translate(-(g.x + GORILLA_WIDTH / 2), -(g.y + GORILLA_HEIGHT / 2));
-        drawGorilla(p, g, costumes[i]);
+        drawGorilla(p, g, costumes[i], state.poisonTurns[i] > 0);
         p.pop();
       } else if (tauntDancePlayer !== null && i === tauntDancePlayer - 1 && tauntDanceHop !== 0) {
         // Draw dancing gorilla with hop offset
         p.push();
         p.translate(0, tauntDanceHop);
-        drawGorilla(p, state.gorillas[i], costumes[i]);
+        drawGorilla(p, state.gorillas[i], costumes[i], state.poisonTurns[i] > 0);
         p.pop();
       } else {
-        drawGorilla(p, state.gorillas[i], costumes[i]);
+        drawGorilla(p, state.gorillas[i], costumes[i], state.poisonTurns[i] > 0);
       }
     }
 
