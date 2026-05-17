@@ -76,7 +76,7 @@ const sketch = (p: p5) => {
   };
 
   p.draw = () => {
-    p.background(20, 20, 40);
+    p.background(30, 30, 80);
     const sys = getSystemInput();
     const p1Input = getPlayerInput(1);
     const p2Input = getPlayerInput(2);

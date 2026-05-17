@@ -47,9 +47,9 @@ export const WIND_STRONG_EXTRA = 10;
 export const WIND_STRONG_CHANCE = 1 / 3;
 
 // City
-export const BUILDING_COLORS = ["#4a3a6b", "#3a5a4b", "#5a3a3a", "#3a4a5a"];
+export const BUILDING_COLORS = ["#7a60a8", "#5a8a6b", "#8a5a5a", "#5a7a9a"];
 export const WINDOW_COLOR_LIT = "#ffd700";
-export const WINDOW_COLOR_DARK = "#1a1a2a";
+export const WINDOW_COLOR_DARK = "#2a2a4a";
 export const BOTTOM_LINE = HEIGHT - 20;
 export const MIN_BUILDING_WIDTH = 25;
 export const MAX_BUILDING_WIDTH = 50;

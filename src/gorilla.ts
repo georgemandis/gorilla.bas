@@ -1,7 +1,7 @@
 import p5 from "p5";
 import type { Gorilla, ArmState } from "./types";
 
-const GORILLA_COLOR = "#8B4513";
+const GORILLA_COLOR = "#C8782A";
 const EYE_COLOR = "#FFFFFF";
 
 export function drawGorilla(p: p5, gorilla: Gorilla): void {
