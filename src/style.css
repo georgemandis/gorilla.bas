@@ -1,0 +1,19 @@
+html,
+body {
+    width: 336px;
+    height: 262px;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #1a1a2e;
+}
+
+main {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+canvas {
+    display: block;
+}

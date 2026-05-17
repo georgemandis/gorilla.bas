@@ -1,0 +1,23 @@
+{
+    "name": "gorillas_bas",
+    "private": false,
+    "version": "1.0.0",
+    "description": " The legendary QBasic turn-based game featuring gorillas, cityscapes, real physics and exploding bananas.",
+    "type": "module",
+    "scripts": {
+        "dev": "concurrently \"vite --port 5173 --strictPort\" \"rcade dev http://localhost:5173\"",
+        "build": "vite build"
+    },
+    "devDependencies": {
+        "@types/p5": "^1.7.6",
+        "concurrently": "^9.0.0",
+        "rcade": "^0.0.48",
+        "typescript": "^5.8.0",
+        "vite": "^7.2.4"
+    },
+    "dependencies": {
+        "@rcade/plugin-input-classic": "^0.2.1",
+        "@rcade/plugin-input-spinners": "^0.2.3",
+        "p5": "^1.11.3"
+    }
+}

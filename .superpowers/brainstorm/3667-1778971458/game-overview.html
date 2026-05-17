@@ -1,0 +1,119 @@
+<h2>GORILLAS.BAS → RCade: Game Overview</h2>
+<p class="subtitle">Understanding the original game mechanics and how they map to arcade controls</p>
+
+<div class="section">
+  <h3>Original Game Flow</h3>
+  <div class="mockup">
+    <div class="mockup-header">GORILLA.BAS Game Loop</div>
+    <div class="mockup-body" style="padding: 20px; font-family: monospace; font-size: 12px; line-height: 1.8;">
+      <div style="display: flex; gap: 20px; align-items: flex-start;">
+        <div style="flex: 1;">
+          <div style="background: #2a2a4a; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
+            <strong style="color: #7af;">1. SETUP</strong><br>
+            - Enter player names<br>
+            - Choose # of rounds<br>
+            - Set gravity (default 9.8)
+          </div>
+          <div style="background: #2a4a2a; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
+            <strong style="color: #7f7;">2. EACH ROUND</strong><br>
+            - Generate random cityscape<br>
+            - Place gorillas on buildings<br>
+            - Randomize wind speed/direction
+          </div>
+          <div style="background: #4a2a2a; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
+            <strong style="color: #f77;">3. EACH TURN</strong><br>
+            - Player enters ANGLE (0-360°)<br>
+            - Player enters VELOCITY (power)<br>
+            - Banana flies with physics<br>
+            - Check: hit building? gorilla? sun? off-screen?
+          </div>
+          <div style="background: #4a4a2a; padding: 12px; border-radius: 6px;">
+            <strong style="color: #ff7;">4. RESOLUTION</strong><br>
+            - Explosion animation<br>
+            - Victory dance<br>
+            - Score update → next round
+          </div>
+        </div>
+        <div style="flex: 1;">
+          <div style="background: #1a1a2a; padding: 15px; border-radius: 6px; border: 1px solid #444;">
+            <strong style="color: #ffa;">Physics Model:</strong><br><br>
+            <code>x = startX + (Vx * t) + (0.5 * wind * t²)</code><br><br>
+            <code>y = startY - (Vy * t) + (0.5 * gravity * t²)</code><br><br>
+            <span style="color: #aaa;">Where:</span><br>
+            <span style="color: #aaa;">• Vx = cos(angle) * velocity</span><br>
+            <span style="color: #aaa;">• Vy = sin(angle) * velocity</span><br>
+            <span style="color: #aaa;">• Wind affects horizontal</span><br>
+            <span style="color: #aaa;">• Gravity pulls down</span><br><br>
+            <strong style="color: #ffa;">Hit Detection:</strong><br>
+            <span style="color: #aaa;">• Pixel-based (POINT function)</span><br>
+            <span style="color: #aaa;">• Checks color at banana position</span><br>
+            <span style="color: #aaa;">• Building color = building hit</span><br>
+            <span style="color: #aaa;">• Gorilla color = gorilla hit</span><br>
+            <span style="color: #aaa;">• Sun color = sun reaction</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>RCade Control Mapping</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+    <div style="background: #1e293b; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+      <strong style="color: #f59e0b;">SPINNER (per player)</strong><br>
+      <span style="color: #94a3b8;">Continuous rotation → Angle selection</span><br>
+      <span style="color: #64748b; font-size: 11px;">Visual: arrow rotating around gorilla</span>
+    </div>
+    <div style="background: #1e293b; padding: 15px; border-radius: 8px; border-left: 4px solid #22c55e;">
+      <strong style="color: #22c55e;">A BUTTON (per player)</strong><br>
+      <span style="color: #94a3b8;">Hold to charge → Power meter</span><br>
+      <span style="color: #64748b; font-size: 11px;">Release to throw banana</span>
+    </div>
+    <div style="background: #1e293b; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6;">
+      <strong style="color: #3b82f6;">DPAD / JOYSTICK</strong><br>
+      <span style="color: #94a3b8;">Menu navigation, name entry</span><br>
+      <span style="color: #64748b; font-size: 11px;">Settings screens only</span>
+    </div>
+    <div style="background: #1e293b; padding: 15px; border-radius: 8px; border-left: 4px solid #a855f7;">
+      <strong style="color: #a855f7;">B BUTTON / START</strong><br>
+      <span style="color: #94a3b8;">Confirm selections, start game</span><br>
+      <span style="color: #64748b; font-size: 11px;">Menu interactions</span>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Key Design Constraint: 336 x 262 pixels</h3>
+  <div class="mockup">
+    <div class="mockup-header">RCade Screen (to scale ratio)</div>
+    <div class="mockup-body" style="padding: 0; position: relative; background: #0a0a2a;">
+      <div style="aspect-ratio: 336/262; max-width: 100%; position: relative; overflow: hidden;">
+        <!-- Skyline silhouette -->
+        <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 60%; display: flex; align-items: flex-end; gap: 2px; padding: 0 4px;">
+          <div style="background: #334; width: 12%; height: 45%;"></div>
+          <div style="background: #445; width: 10%; height: 65%;"></div>
+          <div style="background: #334; width: 14%; height: 55%;"></div>
+          <div style="background: #445; width: 11%; height: 75%;"></div>
+          <div style="background: #334; width: 13%; height: 50%;"></div>
+          <div style="background: #445; width: 12%; height: 70%;"></div>
+          <div style="background: #334; width: 10%; height: 60%;"></div>
+          <div style="background: #445; width: 14%; height: 45%;"></div>
+        </div>
+        <!-- Gorillas -->
+        <div style="position: absolute; bottom: 52%; left: 18%; width: 16px; height: 20px; background: #a52; border-radius: 4px 4px 0 0; text-align: center; font-size: 8px; color: white;">G1</div>
+        <div style="position: absolute; bottom: 57%; right: 22%; width: 16px; height: 20px; background: #a52; border-radius: 4px 4px 0 0; text-align: center; font-size: 8px; color: white;">G2</div>
+        <!-- Sun -->
+        <div style="position: absolute; top: 8%; left: 50%; transform: translateX(-50%); width: 20px; height: 20px; background: #fa0; border-radius: 50%;"></div>
+        <!-- Wind indicator -->
+        <div style="position: absolute; bottom: 3%; left: 50%; transform: translateX(-50%); color: #fff; font-size: 9px;">← wind →</div>
+        <!-- Score area -->
+        <div style="position: absolute; top: 2%; left: 3%; color: #fff; font-size: 9px;">P1: 0</div>
+        <div style="position: absolute; top: 2%; right: 3%; color: #fff; font-size: 9px;">P2: 0</div>
+        <!-- Angle indicator mockup -->
+        <div style="position: absolute; bottom: 54%; left: 14%; width: 30px; height: 30px; border: 1px dashed #f59e0b; border-radius: 50%; opacity: 0.6;"></div>
+      </div>
+    </div>
+  </div>
+  <p style="color: #94a3b8; font-size: 12px; margin-top: 8px;">The original was 640x350 (EGA) or 320x200 (CGA). Our 336x262 is close to the CGA mode, so scaling should feel natural.</p>
+</div>

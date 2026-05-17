@@ -1,0 +1,22 @@
+{
+  "$schema": "https://rcade.dev/manifest.schema.json",
+  "name": "gorillas_bas",
+  "display_name": "GORILLAS.BAS",
+  "description": " The legendary QBasic turn-based game featuring gorillas, cityscapes, real physics and exploding bananas.",
+  "visibility": "public",
+  "authors": [
+    {
+      "display_name": "George Mandis"
+    }
+  ],
+  "dependencies": [
+    {
+      "name": "@rcade/input-classic",
+      "version": "1.0.0"
+    },
+    {
+      "name": "@rcade/input-spinners",
+      "version": "1.0.0"
+    }
+  ]
+}
