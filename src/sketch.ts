@@ -81,6 +81,10 @@ const sketch = (p: p5) => {
   let explosionX = 0;
   let explosionY = 0;
   let activeExplosionRadius = EXPLOSION_RADIUS;
+  let confettiParticles: { x: number; y: number; vx: number; vy: number; color: string }[] = [];
+  let confettiTimer = 0;
+  const CONFETTI_DURATION_MS = 1500;
+  const CONFETTI_REACTIONS = ["...What?", "Huh?!", "Confetti?!", "*blinks*", "Wha...?", "???", "Seriously?!"];
   let bananaRotation = 0;
   let lastAngles: [number, number] = [INITIAL_ANGLE_P1, INITIAL_ANGLE_P2];
   let loserFallOffset = 0;
@@ -215,12 +219,17 @@ const sketch = (p: p5) => {
           drawBanana(p);
         }
         drawSubProjectiles(p);
+        drawConfetti(p);
         break;
 
       case "explosion":
         updateExplosion();
         drawGameplay(p);
-        drawExplosion(p, explosionX, explosionY, getExplosionProgress(), activeExplosionRadius);
+        if (confettiParticles.length > 0) {
+          drawConfetti(p);
+        } else {
+          drawExplosion(p, explosionX, explosionY, getExplosionProgress(), activeExplosionRadius);
+        }
         break;
 
       case "victory":
@@ -441,6 +450,38 @@ const sketch = (p: p5) => {
     gorilla.armState = "down";
   }
 
+  function generateConfetti(cx: number, cy: number) {
+    const colors = ["#ff0066", "#00ccff", "#ffcc00", "#66ff00", "#ff6600", "#cc00ff"];
+    const particles = [];
+    for (let i = 0; i < 30; i++) {
+      particles.push({
+        x: cx, y: cy,
+        vx: (Math.random() - 0.5) * 4,
+        vy: -Math.random() * 3 - 1,
+        color: colors[Math.floor(Math.random() * colors.length)],
+      });
+    }
+    return particles;
+  }
+
+  function drawConfetti(p: p5) {
+    if (confettiParticles.length === 0) return;
+    const elapsed = p.millis() - confettiTimer;
+    if (elapsed > CONFETTI_DURATION_MS) {
+      confettiParticles = [];
+      return;
+    }
+    const fade = Math.max(0, 1 - elapsed / CONFETTI_DURATION_MS);
+    for (const c of confettiParticles) {
+      c.x += c.vx;
+      c.y += c.vy;
+      c.vy += 0.1; // gravity
+      p.fill(p.red(p.color(c.color)), p.green(p.color(c.color)), p.blue(p.color(c.color)), fade * 255);
+      p.noStroke();
+      p.rect(c.x, c.y, 2, 2);
+    }
+  }
+
   function updateFlight() {
     if (!state.projectile) return;
 
@@ -501,6 +542,18 @@ const sketch = (p: p5) => {
         break;
       }
       case "building": {
+        if (state.projectile?.powerUpType === "confetti") {
+          explosionX = pos.x;
+          explosionY = pos.y;
+          state.projectile = null;
+          confettiParticles = generateConfetti(pos.x, pos.y);
+          confettiTimer = p.millis();
+          playSound("confetti_pop");
+          state.explosionTimer = p.millis();
+          state.lastHitPlayer = null;
+          state.phase = "explosion";
+          break;
+        }
         explosionX = pos.x;
         explosionY = pos.y;
         const buildingExpRadius = state.projectile!.explosionRadius ?? EXPLOSION_RADIUS;
@@ -529,7 +582,25 @@ const sketch = (p: p5) => {
         }
         break;
       }
-      case "gorilla":
+      case "gorilla": {
+        if (state.projectile?.powerUpType === "confetti") {
+          // Confetti! No damage, no score
+          explosionX = pos.x;
+          explosionY = pos.y;
+          state.projectile = null;
+          confettiParticles = generateConfetti(pos.x, pos.y);
+          confettiTimer = p.millis();
+          playSound("confetti_pop");
+          // Confused reaction from victim
+          triggerBubble(result.gorilla.playerNum as 1 | 2, CONFETTI_REACTIONS);
+          // Thrower dances
+          triggerDance(state.currentPlayer);
+          // End turn via explosion phase (but no scoring)
+          state.explosionTimer = p.millis();
+          state.lastHitPlayer = null;
+          state.phase = "explosion";
+          break;
+        }
         explosionX = pos.x;
         explosionY = pos.y;
         activeExplosionRadius = state.projectile!.explosionRadius ?? EXPLOSION_RADIUS;
@@ -539,6 +610,7 @@ const sketch = (p: p5) => {
         state.phase = "explosion";
         playSound("hit");
         break;
+      }
     }
   }
 
