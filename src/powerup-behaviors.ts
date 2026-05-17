@@ -1,4 +1,4 @@
-import type { Projectile, PowerUpType } from "./types";
+import type { Projectile, PowerUpType, Portal } from "./types";
 import {
   BIG_BANANA_EXPLOSION_MULT, EXPLOSION_RADIUS,
   RICOCHET_MAX_BOUNCES, WRAP_MAX_WRAPS, PORTAL_MAX_PASSES,
@@ -140,5 +140,36 @@ export function handleWrapAround(
     return restarted;
   }
 
+  return null;
+}
+
+export function checkPortalEntry(
+  proj: Projectile,
+  pos: { x: number; y: number },
+  portals: [Portal | null, Portal | null],
+  gravity: number
+): Projectile | null {
+  if (!portals[0] || !portals[1]) return null;
+  if (proj.portalPassesRemaining !== undefined && proj.portalPassesRemaining <= 0) return null;
+
+  for (let i = 0; i < 2; i++) {
+    const portal = portals[i]!;
+    const otherPortal = portals[1 - i]!;
+
+    // Check if banana is near this portal (within ~10px)
+    const dx = pos.x - portal.x;
+    const dy = pos.y - portal.y;
+    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+      // Use current velocity (wind-free vx, convert screen-vy to launch convention)
+      const currentVy = -proj.vy + gravity * proj.t;
+      const restarted = restartProjectile(
+        proj, otherPortal.x, otherPortal.y,
+        proj.vx,      // wind-free (physics re-applies wind)
+        -currentVy     // negate screen-vy back to launch convention
+      );
+      restarted.portalPassesRemaining = (proj.portalPassesRemaining ?? PORTAL_MAX_PASSES) - 1;
+      return restarted;
+    }
+  }
   return null;
 }

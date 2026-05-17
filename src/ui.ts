@@ -1,5 +1,5 @@
 import p5 from "p5";
-import type { GameState, TimeOfDay, PowerUpType } from "./types";
+import type { GameState, TimeOfDay, PowerUpType, Portal } from "./types";
 import {
   WIDTH,
   HEIGHT,
@@ -488,6 +488,23 @@ function drawPowerUpIcon(p: p5, x: number, y: number, size: number, type: PowerU
       p.fill(0, 200, 0);
       p.circle(x + size / 2, y + size / 2, size);
       break;
+  }
+}
+
+export function drawPortals(p: p5, portals: [Portal | null, Portal | null]): void {
+  for (const portal of portals) {
+    if (!portal) continue;
+    const pulse = Math.sin(p.millis() / 300) * 0.2 + 0.8;
+
+    if (portal.color === "orange") {
+      p.fill(255, 140, 0, 150 * pulse);
+      p.stroke(255, 180, 50, 200 * pulse);
+    } else {
+      p.fill(0, 100, 255, 150 * pulse);
+      p.stroke(50, 150, 255, 200 * pulse);
+    }
+    p.strokeWeight(1);
+    p.ellipse(portal.x, portal.y, 12, 18);
   }
 }
 

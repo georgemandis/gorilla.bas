@@ -22,13 +22,13 @@ import { drawGorilla } from "./gorilla";
 import {
   drawScores, drawAngleIndicator, drawActivePlayerIndicator, drawPowerMeter,
   drawSun, drawEvilSun, drawExplosion, drawTitleScreen, drawConfigScreen,
-  drawGameOver, drawInventoryHUD,
+  drawGameOver, drawInventoryHUD, drawPortals,
 } from "./ui";
 import { randomName } from "./names";
 import { getCostume } from "./costumes";
 import { playSound, startPowerHum, updatePowerHum, stopPowerHum } from "./sound";
 import { trySpawnCrate, updateCrateFall, drawCrate, collectCrate, cycleSelectedPowerUp, consumeSelectedPowerUp } from "./powerups";
-import { applyPowerUpToProjectile, handleRicochet, handleWrapAround, splitClusterBomb } from "./powerup-behaviors";
+import { applyPowerUpToProjectile, handleRicochet, handleWrapAround, splitClusterBomb, checkPortalEntry } from "./powerup-behaviors";
 
 function createInitialState(): GameState {
   return {
@@ -520,7 +520,52 @@ const sketch = (p: p5) => {
     }
 
     const pos = getProjectilePositionWithGravity(state.projectile, state.wind, state.gravity);
+
+    // Check if banana enters a portal (only for non-portal bananas when both portals exist)
+    if (state.portals[0] && state.portals[1] && state.projectile.powerUpType !== "portal") {
+      const portalResult = checkPortalEntry(state.projectile, pos, state.portals, state.gravity);
+      if (portalResult) {
+        state.projectile = portalResult;
+        playSound("portal_whoosh");
+        return; // continue flight from portal exit
+      }
+    }
+
     const result = checkCollision(pos.x, pos.y, state.projectile.t, state.buildings, state.gorillas, state.crate);
+
+    // Portal banana — suppress damage, place portal
+    if (state.projectile?.powerUpType === "portal") {
+      if (result.type === "miss") {
+        const pos2 = getProjectilePositionWithGravity(state.projectile, state.wind, state.gravity);
+        const isEdgeMiss = pos2.x < 0 || pos2.x > WIDTH;
+
+        if (isEdgeMiss) {
+          // Place portal at screen edge
+          const edge: "left" | "right" = pos2.x < 0 ? "left" : "right";
+          placePortal(state, edge, edge === "left" ? 0 : WIDTH, pos2.y);
+          state.projectile = null;
+          playSound("portal_place");
+          resolveThrowEnd();
+          return;
+        }
+        // Ground miss or top miss — place portal at impact point
+        placePortal(state, pos2.x < WIDTH / 2 ? "left" : "right", pos2.x, pos2.y);
+        state.projectile = null;
+        playSound("portal_place");
+        resolveThrowEnd();
+        return;
+      }
+      if (result.type === "building" || result.type === "gorilla" || result.type === "crate") {
+        // Place portal at impact point, no damage
+        const pos2 = getProjectilePositionWithGravity(state.projectile, state.wind, state.gravity);
+        placePortal(state, pos2.x < WIDTH / 2 ? "left" : "right", pos2.x, pos2.y);
+        state.projectile = null;
+        playSound("portal_place");
+        resolveThrowEnd();
+        return;
+      }
+      // "none" and "sun" fall through to normal handling
+    }
 
     switch (result.type) {
       case "none":
@@ -1208,6 +1253,14 @@ const sketch = (p: p5) => {
     p.text(tauntBubbleText, bx, by - 1);
   }
 
+  function placePortal(st: GameState, edge: "left" | "right", x: number, y: number) {
+    if (st.portals[0] === null) {
+      st.portals[0] = { edge, x, y, color: "orange" };
+    } else if (st.portals[1] === null) {
+      st.portals[1] = { edge, x, y, color: "blue" };
+    }
+  }
+
   function switchPlayer() {
     state.currentPlayer = state.currentPlayer === 1 ? 2 : 1;
     state.selectedPowerUp = null;
@@ -1246,6 +1299,8 @@ const sketch = (p: p5) => {
     updateAndDrawClouds(p);
 
     drawCity(p, state.buildings);
+
+    drawPortals(p, state.portals);
 
     // Draw crate
     if (state.crate) {
