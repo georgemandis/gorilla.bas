@@ -14,7 +14,7 @@ import {
   SKY_COLORS, GROUND_COLORS,
 } from "./config";
 import { getPlayerInput, getSystemInput } from "./input";
-import { generateCityscape, placeGorillas, generateWind } from "./city";
+import { generateCityscape, placeGorillas, generateWind, randomGorillaPlacements } from "./city";
 import { createProjectile, getProjectilePositionWithGravity, advanceProjectile } from "./physics";
 import { checkCollision } from "./collision";
 import { drawGorilla } from "./gorilla";
@@ -482,6 +482,15 @@ const sketch = (p: p5) => {
     }
   }
 
+  function findBuildingUnderGorilla(gorilla: { x: number; width?: number }, buildings: Building[]): number {
+    const gCenterX = gorilla.x + GORILLA_WIDTH / 2;
+    for (let i = 0; i < buildings.length; i++) {
+      const b = buildings[i];
+      if (gCenterX >= b.x && gCenterX <= b.x + b.width) return i;
+    }
+    return -1;
+  }
+
   function updateFlight() {
     if (!state.projectile) return;
 
@@ -552,6 +561,23 @@ const sketch = (p: p5) => {
           state.explosionTimer = p.millis();
           state.lastHitPlayer = null;
           state.phase = "explosion";
+          break;
+        }
+        if (state.projectile?.powerUpType === "teleportation") {
+          state.projectile = null;
+          const placements = randomGorillaPlacements(
+            state.buildings,
+            findBuildingUnderGorilla(state.gorillas[0], state.buildings),
+            findBuildingUnderGorilla(state.gorillas[1], state.buildings)
+          );
+          if (placements) {
+            state.gorillas[0].x = placements[0].x;
+            state.gorillas[0].y = placements[0].y;
+            state.gorillas[1].x = placements[1].x;
+            state.gorillas[1].y = placements[1].y;
+          }
+          playSound("teleport_zap");
+          resolveThrowEnd();
           break;
         }
         explosionX = pos.x;

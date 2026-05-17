@@ -6,7 +6,7 @@ function getCtx(): AudioContext {
   return ctx;
 }
 
-export type SoundName = "throw" | "explosion" | "victory" | "hit" | "aim_tick" | "power_lock" | "taunt_dance" | "taunt_bubble" | "bananality_omen" | "bananality_impact" | "bananality_reveal" | "crate_collect" | "crate_land" | "powerup_select" | "cluster_split" | "confetti_pop";
+export type SoundName = "throw" | "explosion" | "victory" | "hit" | "aim_tick" | "power_lock" | "taunt_dance" | "taunt_bubble" | "bananality_omen" | "bananality_impact" | "bananality_reveal" | "crate_collect" | "crate_land" | "powerup_select" | "cluster_split" | "confetti_pop" | "teleport_zap";
 
 export function playSound(name: SoundName): void {
   try {
@@ -27,6 +27,7 @@ export function playSound(name: SoundName): void {
       case "powerup_select": playPowerupSelect(); break;
       case "cluster_split": playClusterSplit(); break;
       case "confetti_pop": playConfettiPop(); break;
+      case "teleport_zap": playTeleportZap(); break;
     }
   } catch {
     // Audio not available — fail silently
@@ -390,6 +391,21 @@ function playConfettiPop() {
   osc.connect(gain).connect(c.destination);
   osc.start();
   osc.stop(c.currentTime + 0.35);
+}
+
+function playTeleportZap() {
+  const c = getCtx();
+  const osc = c.createOscillator();
+  const gain = c.createGain();
+  osc.type = "sawtooth";
+  osc.frequency.setValueAtTime(200, c.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(2000, c.currentTime + 0.15);
+  osc.frequency.exponentialRampToValueAtTime(100, c.currentTime + 0.3);
+  gain.gain.setValueAtTime(0.15, c.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.3);
+  osc.connect(gain).connect(c.destination);
+  osc.start();
+  osc.stop(c.currentTime + 0.3);
 }
 
 function playPowerupSelect() {

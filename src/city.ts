@@ -6,6 +6,7 @@ import {
   MAX_BUILDING_WIDTH,
   CITY_THEME_COLORS,
   GORILLA_HEIGHT,
+  EXPLOSION_RADIUS,
 } from "./config";
 
 type SlopeType = "up" | "down" | "v" | "inv_v" | "v2" | "inv_v2";
@@ -108,6 +109,35 @@ export function placeGorillas(buildings: Building[]): [{ x: number; y: number },
       y: p2Building.y - 25,
     },
   ];
+}
+
+export function randomGorillaPlacements(
+  buildings: Building[],
+  currentP1Idx: number,
+  currentP2Idx: number
+): [{ x: number; y: number; buildingIdx: number }, { x: number; y: number; buildingIdx: number }] | null {
+  // Find buildings with at least 50% undamaged roof
+  const viable = buildings.map((b, i) => ({ b, i })).filter(({ b, i }) => {
+    if (i === currentP1Idx || i === currentP2Idx) return false;
+    const roofDamage = b.damage.filter(d => d.cy <= b.y + 5).length;
+    return roofDamage < b.width / (EXPLOSION_RADIUS * 2);
+  });
+
+  if (viable.length < 2) return null;
+
+  // Pick two buildings at least 3 apart
+  for (let attempts = 0; attempts < 20; attempts++) {
+    const a = viable[Math.floor(Math.random() * viable.length)];
+    const b2 = viable[Math.floor(Math.random() * viable.length)];
+    if (a.i !== b2.i && Math.abs(a.i - b2.i) >= 3) {
+      return [
+        { x: a.b.x + a.b.width / 2 - 10, y: a.b.y - 25, buildingIdx: a.i },
+        { x: b2.b.x + b2.b.width / 2 - 10, y: b2.b.y - 25, buildingIdx: b2.i },
+      ];
+    }
+  }
+
+  return null;
 }
 
 export function generateWind(): number {
