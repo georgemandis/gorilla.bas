@@ -35,13 +35,46 @@ export function drawAngleIndicator(p: p5, state: GameState): void {
   const endX = centerX + Math.cos(angleRad) * ANGLE_ARROW_LENGTH;
   const endY = centerY - Math.sin(angleRad) * ANGLE_ARROW_LENGTH;
 
+  // Dashed circle around gorilla to show aiming zone
+  p.noFill();
+  p.stroke(255, 200, 50, 80);
+  p.strokeWeight(1);
+  p.circle(centerX, centerY, ANGLE_ARROW_LENGTH * 2);
+
+  // Arrow line
   p.stroke(255, 200, 50);
-  p.strokeWeight(2);
+  p.strokeWeight(3);
   p.line(centerX, centerY, endX, endY);
 
+  // Arrowhead
   p.fill(255, 200, 50);
   p.noStroke();
-  p.circle(endX, endY, 4);
+  p.circle(endX, endY, 6);
+}
+
+export function drawActivePlayerIndicator(p: p5, state: GameState): void {
+  const gorilla = state.gorillas[state.currentPlayer - 1];
+  const centerX = gorilla.x + GORILLA_WIDTH / 2;
+  const topY = gorilla.y - 12;
+
+  // Blinking triangle arrow pointing down at active gorilla
+  const blink = Math.sin(p.millis() / 200) > 0;
+  if (blink) {
+    p.fill(state.currentPlayer === 1 ? [100, 150, 255] : [255, 100, 100]);
+    p.noStroke();
+    p.triangle(
+      centerX - 5, topY - 8,
+      centerX + 5, topY - 8,
+      centerX, topY
+    );
+  }
+
+  // Player name label above
+  p.fill(state.currentPlayer === 1 ? [100, 150, 255] : [255, 100, 100]);
+  p.textSize(7);
+  p.textAlign(p.CENTER, p.BOTTOM);
+  p.noStroke();
+  p.text(state.playerNames[state.currentPlayer - 1], centerX, topY - 10);
 }
 
 export function drawPowerMeter(p: p5, state: GameState): void {

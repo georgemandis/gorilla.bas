@@ -15,8 +15,8 @@ import { createProjectile, getProjectilePositionWithGravity, advanceProjectile }
 import { checkCollision } from "./collision";
 import { drawGorilla } from "./gorilla";
 import {
-  drawScores, drawAngleIndicator, drawPowerMeter, drawSun,
-  drawWindArrow, drawExplosion, drawTitleScreen, drawConfigScreen,
+  drawScores, drawAngleIndicator, drawActivePlayerIndicator, drawPowerMeter,
+  drawSun, drawWindArrow, drawExplosion, drawTitleScreen, drawConfigScreen,
   drawGameOver,
 } from "./ui";
 import { randomName } from "./names";
@@ -94,12 +94,14 @@ const sketch = (p: p5) => {
       case "aim":
         updateAim(activeInput);
         drawGameplay(p);
+        drawActivePlayerIndicator(p, state);
         drawAngleIndicator(p, state);
         break;
 
       case "power":
         updatePower(activeInput);
         drawGameplay(p);
+        drawActivePlayerIndicator(p, state);
         drawAngleIndicator(p, state);
         drawPowerMeter(p, state);
         break;
