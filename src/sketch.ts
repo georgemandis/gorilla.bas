@@ -912,6 +912,13 @@ const sketch = (p: p5) => {
     konamiProgress = 0;
     konamiSpinAccum = 0;
     konamiPlayer = null;
+    state.selectedPowerUp = null;
+    state.selectedSlotIndex = -1;
+    state.extraThrowRemaining = false;
+    state.isExtraThrow = false;
+    state.activeSubProjectiles = [];
+    state.portals = [null, null];
+    confettiParticles = [];
     playSound("bananality_omen");
   }
 
