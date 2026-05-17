@@ -26,7 +26,7 @@ import {
 import { randomName } from "./names";
 import { getCostume } from "./costumes";
 import { playSound, startPowerHum, updatePowerHum, stopPowerHum } from "./sound";
-import { trySpawnCrate, updateCrateFall, drawCrate } from "./powerups";
+import { trySpawnCrate, updateCrateFall, drawCrate, collectCrate } from "./powerups";
 
 function createInitialState(): GameState {
   return {
@@ -417,7 +417,7 @@ const sketch = (p: p5) => {
     bananaRotation = (bananaRotation + 0.3) % (Math.PI * 2);
 
     const pos = getProjectilePositionWithGravity(state.projectile, state.wind, state.gravity);
-    const result = checkCollision(pos.x, pos.y, state.projectile.t, state.buildings, state.gorillas);
+    const result = checkCollision(pos.x, pos.y, state.projectile.t, state.buildings, state.gorillas, state.crate);
 
     switch (result.type) {
       case "none":
@@ -443,6 +443,22 @@ const sketch = (p: p5) => {
         result.building.damage.push({ cx: pos.x, cy: pos.y, radius: EXPLOSION_RADIUS });
         playSound("explosion");
         break;
+      case "crate": {
+        explosionX = pos.x;
+        explosionY = pos.y;
+        state.projectile = null;
+        state.explosionTimer = p.millis();
+        state.lastHitPlayer = null;
+        state.phase = "explosion";
+        const playerIdx = (state.currentPlayer - 1) as 0 | 1;
+        const collected = collectCrate(state, playerIdx);
+        if (collected) {
+          playSound("crate_collect");
+        } else {
+          playSound("explosion");
+        }
+        break;
+      }
       case "gorilla":
         explosionX = pos.x;
         explosionY = pos.y;

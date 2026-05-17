@@ -1,8 +1,9 @@
-import type { GameState, PowerUpCrate } from "./types";
+import type { GameState, PowerUpCrate, PowerUpType } from "./types";
 import {
-  WIDTH, CRATE_SPAWN_CHANCE, CRATE_SIZE, ALL_POWERUP_TYPES,
+  WIDTH, CRATE_SPAWN_CHANCE, CRATE_SIZE, ALL_POWERUP_TYPES, MAX_INVENTORY,
 } from "./config";
 import p5 from "p5";
+import { playSound } from "./sound";
 
 export function trySpawnCrate(state: GameState, wind: number): void {
   if (state.crate !== null) return;
@@ -46,7 +47,21 @@ export function updateCrateFall(crate: PowerUpCrate): void {
     crate.fallY = crate.targetY;
     crate.falling = false;
     crate.y = crate.targetY;
+    playSound("crate_land");
   }
+}
+
+export function collectCrate(state: GameState, playerIdx: 0 | 1): PowerUpType | null {
+  if (!state.crate) return null;
+  const powerUp = state.crate.powerUp;
+  state.crate = null;
+
+  if (state.inventory[playerIdx].length < MAX_INVENTORY) {
+    state.inventory[playerIdx].push(powerUp);
+    return powerUp;
+  }
+  // Inventory full — crate destroyed, nothing collected
+  return null;
 }
 
 export function drawCrate(p: p5, crate: PowerUpCrate): void {

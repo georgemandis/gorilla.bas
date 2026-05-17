@@ -6,7 +6,7 @@ function getCtx(): AudioContext {
   return ctx;
 }
 
-export type SoundName = "throw" | "explosion" | "victory" | "hit" | "aim_tick" | "power_lock" | "taunt_dance" | "taunt_bubble" | "bananality_omen" | "bananality_impact" | "bananality_reveal";
+export type SoundName = "throw" | "explosion" | "victory" | "hit" | "aim_tick" | "power_lock" | "taunt_dance" | "taunt_bubble" | "bananality_omen" | "bananality_impact" | "bananality_reveal" | "crate_collect" | "crate_land" | "powerup_select";
 
 export function playSound(name: SoundName): void {
   try {
@@ -22,6 +22,9 @@ export function playSound(name: SoundName): void {
       case "bananality_omen": playBanalityOmen(); break;
       case "bananality_impact": playBanalityImpact(); break;
       case "bananality_reveal": playBanalityReveal(); break;
+      case "crate_collect": playCrateCollect(); break;
+      case "crate_land": playCrateLand(); break;
+      case "powerup_select": playPowerupSelect(); break;
     }
   } catch {
     // Audio not available — fail silently
@@ -326,4 +329,48 @@ function playBanalityReveal() {
     osc.start(t);
     osc.stop(t + 0.2);
   });
+}
+
+function playCrateCollect() {
+  const c = getCtx();
+  [600, 800, 1000, 1200].forEach((freq, i) => {
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    osc.type = "sine";
+    const t = c.currentTime + i * 0.08;
+    osc.frequency.setValueAtTime(freq, t);
+    gain.gain.setValueAtTime(0.12, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+    osc.connect(gain).connect(c.destination);
+    osc.start(t);
+    osc.stop(t + 0.12);
+  });
+}
+
+function playCrateLand() {
+  const c = getCtx();
+  const osc = c.createOscillator();
+  const gain = c.createGain();
+  osc.type = "triangle";
+  osc.frequency.setValueAtTime(200, c.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(80, c.currentTime + 0.15);
+  gain.gain.setValueAtTime(0.15, c.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.15);
+  osc.connect(gain).connect(c.destination);
+  osc.start();
+  osc.stop(c.currentTime + 0.15);
+}
+
+function playPowerupSelect() {
+  const c = getCtx();
+  const osc = c.createOscillator();
+  const gain = c.createGain();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(500, c.currentTime);
+  osc.frequency.setValueAtTime(700, c.currentTime + 0.05);
+  gain.gain.setValueAtTime(0.1, c.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.1);
+  osc.connect(gain).connect(c.destination);
+  osc.start();
+  osc.stop(c.currentTime + 0.1);
 }

@@ -1,19 +1,21 @@
-import type { Building, Gorilla } from "./types";
-import { WIDTH, MAX_FLIGHT_T, SUN_X, SUN_Y, SUN_RADIUS, BOTTOM_LINE } from "./config";
+import type { Building, Gorilla, PowerUpCrate } from "./types";
+import { WIDTH, MAX_FLIGHT_T, SUN_X, SUN_Y, SUN_RADIUS, BOTTOM_LINE, CRATE_SIZE } from "./config";
 
 export type CollisionResult =
   | { type: "none" }
   | { type: "miss" }
   | { type: "building"; building: Building }
   | { type: "gorilla"; gorilla: Gorilla }
-  | { type: "sun" };
+  | { type: "sun" }
+  | { type: "crate" };
 
 export function checkCollision(
   x: number,
   y: number,
   t: number,
   buildings: Building[],
-  gorillas: [Gorilla, Gorilla]
+  gorillas: [Gorilla, Gorilla],
+  crate?: PowerUpCrate | null
 ): CollisionResult {
   if (t >= MAX_FLIGHT_T) {
     return { type: "miss" };
@@ -35,6 +37,14 @@ export function checkCollision(
       y <= gorilla.y + gorilla.height
     ) {
       return { type: "gorilla", gorilla };
+    }
+  }
+
+  // Check crate (after gorillas, before buildings)
+  if (crate && !crate.falling) {
+    if (x >= crate.x && x <= crate.x + CRATE_SIZE &&
+        y >= crate.y && y <= crate.y + CRATE_SIZE) {
+      return { type: "crate" };
     }
   }
 
