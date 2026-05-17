@@ -13,6 +13,7 @@ import {
   GORILLA_WIDTH,
   GORILLA_HEIGHT,
 } from "./config";
+import { drawGorilla } from "./gorilla";
 
 export function drawScores(p: p5, state: GameState): void {
   p.fill(255);
@@ -170,11 +171,28 @@ export function drawTitleScreen(p: p5): void {
 
   p.fill(180);
   p.textSize(6);
-  p.text("A QBasic Classic", WIDTH / 2, HEIGHT / 3 + 22);
+  p.text("A 2P QBasic Classic", WIDTH / 2, HEIGHT / 3 + 22);
+
+  // Dancing gorillas
+  const danceFrame = Math.floor(p.millis() / 300) % 2;
+  const leftArm = danceFrame === 0 ? "left_up" : "right_up";
+  const rightArm = danceFrame === 0 ? "right_up" : "left_up";
+  const centerY = HEIGHT / 2 + 10;
+
+  drawGorilla(p, {
+    x: WIDTH / 2 - 50, y: centerY,
+    width: GORILLA_WIDTH, height: GORILLA_HEIGHT,
+    playerNum: 1, armState: leftArm,
+  });
+  drawGorilla(p, {
+    x: WIDTH / 2 + 30, y: centerY,
+    width: GORILLA_WIDTH, height: GORILLA_HEIGHT,
+    playerNum: 2, armState: rightArm,
+  });
 
   p.fill(255);
   p.textSize(7);
-  p.text("Press START", WIDTH / 2, HEIGHT * 2 / 3);
+  p.text("Press START", WIDTH / 2, HEIGHT * 3 / 4 + 15);
 }
 
 export function drawConfigScreen(
