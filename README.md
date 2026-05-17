@@ -89,10 +89,8 @@ Connect to a GitHub repo and push — the included GitHub Actions workflow will 
 
 ## Credits
 
-Based on the original GORILLAS.BAS by IBM, bundled with MS-DOS 5.0 QBasic (1991).
+Based on the original [GORILLAS.BAS](https://en.wikipedia.org/wiki/Gorillas_(video_game) by Microsoft, bundled with MS-DOS 5.0 QBasic (1990).
 
 Built by [George Mandis](https://george.mand.is) at the [Recurse Center](https://www.recurse.com/) (Spring 2, 2026).
 
----
 
-Made with <3 at [The Recurse Center](https://recurse.com)
