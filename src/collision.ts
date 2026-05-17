@@ -1,5 +1,5 @@
 import type { Building, Gorilla } from "./types";
-import { WIDTH, HEIGHT, MAX_FLIGHT_T, SUN_X, SUN_Y, SUN_RADIUS, BOTTOM_LINE } from "./config";
+import { WIDTH, MAX_FLIGHT_T, SUN_X, SUN_Y, SUN_RADIUS, BOTTOM_LINE } from "./config";
 
 export type CollisionResult =
   | { type: "none" }
