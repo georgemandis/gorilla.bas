@@ -6,7 +6,7 @@ function getCtx(): AudioContext {
   return ctx;
 }
 
-export type SoundName = "throw" | "explosion" | "victory" | "hit" | "aim_tick" | "power_lock" | "taunt_dance" | "taunt_bubble";
+export type SoundName = "throw" | "explosion" | "victory" | "hit" | "aim_tick" | "power_lock" | "taunt_dance" | "taunt_bubble" | "bananality_omen" | "bananality_impact" | "bananality_reveal";
 
 export function playSound(name: SoundName): void {
   try {
@@ -19,6 +19,9 @@ export function playSound(name: SoundName): void {
       case "power_lock": playPowerLock(); break;
       case "taunt_dance": playTauntDance(); break;
       case "taunt_bubble": playTauntBubble(); break;
+      case "bananality_omen": playBanalityOmen(); break;
+      case "bananality_impact": playBanalityImpact(); break;
+      case "bananality_reveal": playBanalityReveal(); break;
     }
   } catch {
     // Audio not available — fail silently
@@ -264,4 +267,63 @@ function playTauntBubble() {
       break;
     }
   }
+}
+
+// --- Bananality sounds ---
+
+function playBanalityOmen() {
+  // Ominous low drone that builds
+  const c = getCtx();
+  const osc1 = c.createOscillator();
+  const osc2 = c.createOscillator();
+  const gain = c.createGain();
+  osc1.type = "sawtooth";
+  osc2.type = "sawtooth";
+  osc1.frequency.setValueAtTime(55, c.currentTime);
+  osc1.frequency.linearRampToValueAtTime(80, c.currentTime + 2);
+  osc2.frequency.setValueAtTime(57, c.currentTime); // slight detune for thickness
+  osc2.frequency.linearRampToValueAtTime(82, c.currentTime + 2);
+  gain.gain.setValueAtTime(0, c.currentTime);
+  gain.gain.linearRampToValueAtTime(0.15, c.currentTime + 1);
+  gain.gain.linearRampToValueAtTime(0.2, c.currentTime + 1.8);
+  gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 2.2);
+  osc1.connect(gain).connect(c.destination);
+  osc2.connect(gain);
+  osc1.start();
+  osc2.start();
+  osc1.stop(c.currentTime + 2.2);
+  osc2.stop(c.currentTime + 2.2);
+}
+
+function playBanalityImpact() {
+  // Thuddy banana impact
+  const c = getCtx();
+  const osc = c.createOscillator();
+  const gain = c.createGain();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(120, c.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(30, c.currentTime + 0.15);
+  gain.gain.setValueAtTime(0.2, c.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.15);
+  osc.connect(gain).connect(c.destination);
+  osc.start();
+  osc.stop(c.currentTime + 0.15);
+}
+
+function playBanalityReveal() {
+  // Dramatic sting for the BANANALITY text
+  const c = getCtx();
+  const notes = [220, 220, 330, 440, 440, 550, 660];
+  notes.forEach((freq, i) => {
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    osc.type = "square";
+    const t = c.currentTime + i * 0.12;
+    osc.frequency.setValueAtTime(freq, t);
+    gain.gain.setValueAtTime(0.15, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+    osc.connect(gain).connect(c.destination);
+    osc.start(t);
+    osc.stop(t + 0.2);
+  });
 }

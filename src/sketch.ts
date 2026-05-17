@@ -20,10 +20,11 @@ import { checkCollision } from "./collision";
 import { drawGorilla } from "./gorilla";
 import {
   drawScores, drawAngleIndicator, drawActivePlayerIndicator, drawPowerMeter,
-  drawSun, drawExplosion, drawTitleScreen, drawConfigScreen,
+  drawSun, drawEvilSun, drawExplosion, drawTitleScreen, drawConfigScreen,
   drawGameOver,
 } from "./ui";
 import { randomName } from "./names";
+import { getCostume } from "./costumes";
 import { playSound, startPowerHum, updatePowerHum, stopPowerHum } from "./sound";
 
 function createInitialState(): GameState {
@@ -87,17 +88,49 @@ const sketch = (p: p5) => {
   let tauntBubbleText = "";
   const TAUNT_DANCE_MS = 600;
   const TAUNT_BUBBLE_MS = 2000;
-  const TAUNTS = [
-    "LOL", "Nice try!", "GG EZ", "Haha!", "Oops!",
-    "Missed!", "Too slow!", "Wow...", "Really?", "Yikes!",
-    "Bruh", "Come on!", "So close!", "Nope!", "Try again!",
-    "Bonk!", ":)", "RIP", "Oof!", "Get rekt!",
-    "Banana breath!", "U mad?", "Skill issue", "LMAO",
-    "Hold this L", "Do over!", "Tragic", "Cope",
-    "EZ clap", "Whiff!", "*yawns*", "Snooze!", "Oh no...",
-    "Git gud", "Weak!", "Lol wut", "Srsly?", "kthxbye",
-    "Ape mode!", "No way!", "BYE BYE", "Later!",
+  const SELF_HIT_TAUNTS = [
+    "LMAOOO", "You hit YOURSELF!", "OOH OOH OOH!", "*dies laughing*",
+    "Skill issue!", "Wrong ape!", "Self-bonk!", "*points & hoots*",
+    "BIG BRAIN!", "Nice aim LOL", "Thanks free point!", "U ok??",
+    "HAHAHAHA!", "*rolls around*", "Wait WHAT", "Classic!",
+    "Ape vs Self!", "Banana boomerang!", "*slow clap*", "Pro move!",
   ];
+  const TAUNTS = [
+    "OOH OOH!", "Nice throw!", "GG EZ", "*beats chest*", "Oops!",
+    "Missed!", "OOH AH AH!", "Wow...", "Really?", "*scratches*",
+    "Bruh", "Peel this!", "So close!", "Nope!", "Try again!",
+    "Bonk!", "*grooms u*", "RIP", "Oof!", "Get rekt!",
+    "Go bananas!", "U mad ape?", "Skill issue", "*flings poo*",
+    "Hold this L", "No banana!", "Tragic", "*munches*",
+    "EZ clap", "Whiff!", "*yawns*", "*picks bugs*", "Oh no...",
+    "Git gud", "Weak arm!", "Lol wut", "Srsly?", "KONG MAD",
+    "APE STRONG!", "No way!", "BYE BYE", "*hoots*",
+    "Top banana!", "Go climb!", "*thumps*", "Ape out!",
+  ];
+  let costumes: [ReturnType<typeof getCostume>, ReturnType<typeof getCostume>] = [null, null];
+
+  // Bananality secret code tracking
+  const KONAMI = ["up", "up", "down", "down", "left", "right", "left", "right", "b", "a"];
+  const BANANALITY_SPINS = 4; // full rotations needed after code
+  let konamiProgress = 0;
+  let konamiSpinAccum = 0;
+  let konamiPlayer: 1 | 2 | null = null; // who entered the code
+  let prevIdleDpadUp = false;
+  let prevIdleDpadDown = false;
+  let prevIdleDpadLeft = false;
+  let prevIdleDpadRight = false;
+  let prevIdleA = false;
+  let prevIdleB = false;
+
+  // Bananality phase state
+  let banalityTimer = 0;
+  let banalityBananas: { x: number; y: number; vy: number; rot: number; landed: boolean; explodeTime: number }[] = [];
+  let banalityRevealPlayed = false;
+  const BANANALITY_OMEN_MS = 2000;     // gray pause before rain
+  const BANANALITY_RAIN_MS = 8000;     // banana rain duration
+  const BANANALITY_REVEAL_MS = 3000;   // text display after rain
+  const BANANALITY_TOTAL_MS = BANANALITY_OMEN_MS + BANANALITY_RAIN_MS + BANANALITY_REVEAL_MS;
+
   let arcadeFont: p5.Font;
 
   p.preload = () => {
@@ -108,6 +141,7 @@ const sketch = (p: p5) => {
     p.createCanvas(WIDTH, HEIGHT);
     p.textFont(arcadeFont);
     state = createInitialState();
+    costumes = [getCostume(state.playerNames[0]), getCostume(state.playerNames[1])];
   };
 
   p.draw = () => {
@@ -137,6 +171,7 @@ const sketch = (p: p5) => {
       case "aim":
         updateAim(activeInput);
         updateTaunts(p1Input, p2Input);
+        updateKonamiCode(p1Input, p2Input);
         drawGameplay(p);
         if (!isActiveTaunting()) {
           drawActivePlayerIndicator(p, state);
@@ -147,6 +182,7 @@ const sketch = (p: p5) => {
       case "power":
         updatePower(activeInput);
         updateTaunts(p1Input, p2Input);
+        updateKonamiCode(p1Input, p2Input);
         drawGameplay(p);
         if (!isActiveTaunting()) {
           drawActivePlayerIndicator(p, state);
@@ -171,6 +207,11 @@ const sketch = (p: p5) => {
       case "victory":
         updateVictory();
         drawGameplay(p);
+        break;
+
+      case "bananality":
+        updateBananality();
+        drawBananality(p);
         break;
 
       case "game_over":
@@ -201,9 +242,11 @@ const sketch = (p: p5) => {
     // Spinner re-rolls names
     if (p1.spinnerDelta !== 0) {
       state.playerNames[0] = randomName();
+      costumes[0] = getCostume(state.playerNames[0]);
     }
     if (p2.spinnerDelta !== 0) {
       state.playerNames[1] = randomName();
+      costumes[1] = getCostume(state.playerNames[1]);
     }
 
     // DPAD navigation — edge-detected
@@ -401,9 +444,12 @@ const sketch = (p: p5) => {
       if (state.lastHitPlayer !== null) {
         // A gorilla was hit — score point
         if (state.lastHitPlayer === state.currentPlayer) {
-          // Self-hit: opponent scores
+          // Self-hit: opponent scores and auto-taunts
           const opponentIdx = state.currentPlayer === 1 ? 1 : 0;
           state.scores[opponentIdx]++;
+          const opponent: 1 | 2 = state.currentPlayer === 1 ? 2 : 1;
+          triggerDance(opponent);
+          triggerBubble(opponent, SELF_HIT_TAUNTS);
         } else {
           // Hit opponent: thrower scores
           state.scores[state.currentPlayer - 1]++;
@@ -462,10 +508,294 @@ const sketch = (p: p5) => {
     }
   }
 
+  // --- Bananality secret code ---
+
+  function updateKonamiCode(p1: ReturnType<typeof getPlayerInput>, p2: ReturnType<typeof getPlayerInput>) {
+    const idlePlayer: 1 | 2 = state.currentPlayer === 1 ? 2 : 1;
+    const idle = idlePlayer === 1 ? p1 : p2;
+
+    // Edge-detect idle player's dpad and buttons
+    const idleUp = idle.dpadUp && !prevIdleDpadUp;
+    const idleDown = idle.dpadDown && !prevIdleDpadDown;
+    const idleLeft = idle.dpadLeft && !prevIdleDpadLeft;
+    const idleRight = idle.dpadRight && !prevIdleDpadRight;
+    const idleA = idle.a && !prevIdleA;
+    const idleB = idle.b && !prevIdleB;
+
+    prevIdleDpadUp = idle.dpadUp;
+    prevIdleDpadDown = idle.dpadDown;
+    prevIdleDpadLeft = idle.dpadLeft;
+    prevIdleDpadRight = idle.dpadRight;
+    prevIdleA = idle.a;
+    prevIdleB = idle.b;
+
+    // Determine which input was pressed this frame (if any)
+    let pressed: string | null = null;
+    if (idleUp) pressed = "up";
+    else if (idleDown) pressed = "down";
+    else if (idleLeft) pressed = "left";
+    else if (idleRight) pressed = "right";
+    else if (idleB) pressed = "b";
+    else if (idleA) pressed = "a";
+
+    if (pressed !== null) {
+      if (konamiProgress < KONAMI.length) {
+        if (pressed === KONAMI[konamiProgress]) {
+          konamiProgress++;
+          konamiPlayer = idlePlayer;
+          if (konamiProgress === KONAMI.length) {
+            // Code complete — now need spins
+            konamiSpinAccum = 0;
+          }
+        } else {
+          // Wrong input — reset
+          konamiProgress = 0;
+          konamiSpinAccum = 0;
+        }
+      }
+    }
+
+    // After code is complete, accumulate spinner rotation
+    if (konamiProgress >= KONAMI.length && konamiPlayer !== null) {
+      konamiSpinAccum += Math.abs(idle.spinnerDelta);
+      if (konamiSpinAccum >= 360 * BANANALITY_SPINS) {
+        triggerBananality();
+      }
+    }
+  }
+
+  function triggerBananality() {
+    state.phase = "bananality";
+    state.projectile = null;
+    stopPowerHum();
+    banalityTimer = p.millis();
+    banalityBananas = [];
+    banalityRevealPlayed = false;
+    konamiProgress = 0;
+    konamiSpinAccum = 0;
+    konamiPlayer = null;
+    playSound("bananality_omen");
+  }
+
+  function updateBananality() {
+    const elapsed = p.millis() - banalityTimer;
+    const now = p.millis();
+
+    if (elapsed > BANANALITY_OMEN_MS && elapsed <= BANANALITY_OMEN_MS + BANANALITY_RAIN_MS) {
+      // Spawn many bananas per frame — ramps up over time
+      const rainElapsed = elapsed - BANANALITY_OMEN_MS;
+      const intensity = Math.min(1, rainElapsed / 2000); // ramps up over 2s
+      const spawnsPerFrame = 2 + Math.floor(intensity * 6); // 2-8 per frame
+      for (let i = 0; i < spawnsPerFrame; i++) {
+        if (Math.random() < 0.7) {
+          banalityBananas.push({
+            x: Math.random() * WIDTH,
+            y: -10 - Math.random() * 30,
+            vy: 3 + Math.random() * 4,
+            rot: Math.random() * Math.PI * 2,
+            landed: false,
+            explodeTime: 0,
+          });
+        }
+      }
+    }
+
+    // Update all bananas
+    for (const b of banalityBananas) {
+      if (b.landed) continue;
+      b.y += b.vy;
+      b.vy += 0.15; // gravity acceleration
+      b.rot += 0.3;
+
+      let hit = false;
+
+      // Check collision with buildings — carve explosion holes
+      // Skip if banana is inside an existing damage hole (already destroyed)
+      for (const bld of state.buildings) {
+        if (b.x >= bld.x && b.x <= bld.x + bld.width && b.y >= bld.y && b.y <= bld.y + bld.height) {
+          let inHole = false;
+          for (const hole of bld.damage) {
+            const dx = b.x - hole.cx;
+            const dy = b.y - hole.cy;
+            if (dx * dx + dy * dy < hole.radius * hole.radius) {
+              inHole = true;
+              break;
+            }
+          }
+          if (!inHole) {
+            bld.damage.push({ cx: b.x, cy: b.y, radius: EXPLOSION_RADIUS });
+            hit = true;
+            break;
+          }
+          // else: banana falls through the hole, keep going
+        }
+      }
+
+      // Check collision with gorillas
+      if (!hit) {
+        for (const g of state.gorillas) {
+          if (b.x >= g.x && b.x <= g.x + GORILLA_WIDTH && b.y >= g.y && b.y <= g.y + GORILLA_HEIGHT) {
+            g.y += 30;
+            hit = true;
+            break;
+          }
+        }
+      }
+
+      // Hit the ground
+      if (!hit && b.y >= BOTTOM_LINE) {
+        hit = true;
+      }
+
+      if (hit) {
+        b.landed = true;
+        b.explodeTime = now;
+        // Throttle impact sounds — only play occasionally
+        if (Math.random() < 0.15) {
+          playSound("bananality_impact");
+        }
+      }
+    }
+
+    // Prune old exploded bananas to avoid unbounded growth
+    const EXPLODE_VISIBLE_MS = 300;
+    banalityBananas = banalityBananas.filter(
+      b => !b.landed || (now - b.explodeTime) < EXPLODE_VISIBLE_MS
+    );
+
+    // Reveal phase
+    if (elapsed > BANANALITY_OMEN_MS + BANANALITY_RAIN_MS && !banalityRevealPlayed) {
+      banalityRevealPlayed = true;
+      playSound("bananality_reveal");
+    }
+
+    // Done — start a new round, no points awarded
+    if (elapsed > BANANALITY_TOTAL_MS) {
+      startNewRound();
+    }
+  }
+
+  function drawBananality(p: p5) {
+    const elapsed = p.millis() - banalityTimer;
+
+    // Omen phase: gray tint over the gameplay
+    if (elapsed <= BANANALITY_OMEN_MS) {
+      // Draw normal gameplay underneath
+      drawGameplay(p);
+
+      // Gray overlay that fades in
+      const fade = Math.min(1, elapsed / (BANANALITY_OMEN_MS * 0.5));
+      p.fill(40, 40, 40, fade * 120);
+      p.noStroke();
+      p.rect(0, 0, WIDTH, HEIGHT);
+
+      // Ominous text
+      if (elapsed > BANANALITY_OMEN_MS * 0.4) {
+        const textFade = Math.min(255, ((elapsed - BANANALITY_OMEN_MS * 0.4) / 500) * 255);
+        p.fill(255, 200, 0, textFade);
+        p.textSize(6);
+        p.textAlign(p.CENTER, p.CENTER);
+        p.noStroke();
+        p.text("Something terrible is coming...", WIDTH / 2, HEIGHT / 2);
+      }
+      return;
+    }
+
+    // Rain phase: draw destroyed city + raining bananas
+    if (elapsed <= BANANALITY_OMEN_MS + BANANALITY_RAIN_MS) {
+      // Darker sky
+      p.background(30, 30, 30);
+
+      // Screen shake during rain
+      p.push();
+      const shakeX = (Math.random() - 0.5) * 3;
+      const shakeY = (Math.random() - 0.5) * 3;
+      p.translate(shakeX, shakeY);
+
+      // Draw the city (being destroyed)
+      const gnd = GROUND_COLORS[state.timeOfDay];
+      p.noStroke();
+      p.fill(gnd[0], gnd[1], gnd[2]);
+      p.rect(0, BOTTOM_LINE, WIDTH, HEIGHT - BOTTOM_LINE);
+      drawCity(p, state.buildings);
+
+      // Draw gorillas (getting battered)
+      for (let i = 0; i < 2; i++) {
+        drawGorilla(p, state.gorillas[i], costumes[i]);
+      }
+
+      // Evil sun/moon laughing maniacally
+      drawEvilSun(p, state.timeOfDay);
+
+      // Draw flying bananas
+      p.noStroke();
+      for (const b of banalityBananas) {
+        if (b.landed) {
+          // Draw explosion at impact point
+          const explodeElapsed = p.millis() - b.explodeTime;
+          const explodeDuration = 300;
+          if (explodeElapsed < explodeDuration) {
+            const progress = explodeElapsed < explodeDuration / 2
+              ? explodeElapsed / (explodeDuration / 2)
+              : 1 - (explodeElapsed - explodeDuration / 2) / (explodeDuration / 2);
+            const r = progress * EXPLOSION_RADIUS * 2;
+            p.fill(255, 100, 0, 200 * progress);
+            p.circle(b.x, b.y, r * 2);
+            p.fill(255, 255, 0, 150 * progress);
+            p.circle(b.x, b.y, r);
+          }
+        } else {
+          if (b.y > HEIGHT + 10) continue;
+          p.push();
+          p.translate(b.x, b.y);
+          p.rotate(b.rot);
+          p.fill(255, 255, 0);
+          p.arc(0, 0, 8, 6, 0, Math.PI);
+          p.pop();
+        }
+      }
+
+      p.pop();
+      return;
+    }
+
+    // Reveal phase: BANANALITY!
+    p.background(20, 20, 20);
+
+    // Draw the destroyed aftermath
+    const gnd = GROUND_COLORS[state.timeOfDay];
+    p.noStroke();
+    p.fill(gnd[0], gnd[1], gnd[2]);
+    p.rect(0, BOTTOM_LINE, WIDTH, HEIGHT - BOTTOM_LINE);
+    drawCity(p, state.buildings);
+
+    // Evil sun still cackling
+    drawEvilSun(p, state.timeOfDay);
+
+    // Flashing "BANANALITY!" text
+    const revealElapsed = elapsed - BANANALITY_OMEN_MS - BANANALITY_RAIN_MS;
+    const flash = Math.sin(revealElapsed / 100) > 0;
+    if (flash) {
+      p.fill(255, 255, 0);
+    } else {
+      p.fill(255, 100, 0);
+    }
+    p.textSize(14);
+    p.textAlign(p.CENTER, p.CENTER);
+    p.noStroke();
+    p.text("BANANALITY!", WIDTH / 2, HEIGHT / 2);
+
+    // Subtitle
+    p.fill(180);
+    p.textSize(6);
+    p.text("No points awarded.", WIDTH / 2, HEIGHT / 2 + 20);
+  }
+
   function updateGameOver(sys: ReturnType<typeof getSystemInput>) {
     if ((sys.onePlayer && !prevStart1P) || (sys.twoPlayer && !prevStart2P)) {
       state = createInitialState();
       lastAngles = [INITIAL_ANGLE_P1, INITIAL_ANGLE_P2];
+      costumes = [getCostume(state.playerNames[0]), getCostume(state.playerNames[1])];
     }
   }
 
@@ -487,12 +817,13 @@ const sketch = (p: p5) => {
     }
   }
 
-  function triggerBubble(player: 1 | 2) {
+  function triggerBubble(player: 1 | 2, messages?: string[]) {
     const now = p.millis();
     if (now - tauntBubbleTimer > TAUNT_BUBBLE_MS) {
       tauntBubbleTimer = now;
       tauntBubblePlayer = player;
-      tauntBubbleText = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
+      const pool = messages ?? TAUNTS;
+      tauntBubbleText = pool[Math.floor(Math.random() * pool.length)];
       playSound("taunt_bubble");
     }
   }
@@ -613,16 +944,16 @@ const sketch = (p: p5) => {
         p.translate(g.x + GORILLA_WIDTH / 2, g.y + GORILLA_HEIGHT / 2 + loserFallOffset);
         p.scale(1, -1);
         p.translate(-(g.x + GORILLA_WIDTH / 2), -(g.y + GORILLA_HEIGHT / 2));
-        drawGorilla(p, g);
+        drawGorilla(p, g, costumes[i]);
         p.pop();
       } else if (tauntDancePlayer !== null && i === tauntDancePlayer - 1 && tauntDanceHop !== 0) {
         // Draw dancing gorilla with hop offset
         p.push();
         p.translate(0, tauntDanceHop);
-        drawGorilla(p, state.gorillas[i]);
+        drawGorilla(p, state.gorillas[i], costumes[i]);
         p.pop();
       } else {
-        drawGorilla(p, state.gorillas[i]);
+        drawGorilla(p, state.gorillas[i], costumes[i]);
       }
     }
 

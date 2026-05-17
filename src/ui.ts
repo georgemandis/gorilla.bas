@@ -148,28 +148,30 @@ export function drawSun(p: p5, shocked: boolean, timeOfDay: TimeOfDay = "day"): 
 }
 
 function drawMoon(p: p5, shocked: boolean): void {
-  // Moon body — pale white/blue
+  // Full moon body
   p.fill(220, 220, 240);
   p.noStroke();
   p.circle(SUN_X, SUN_Y, SUN_RADIUS * 2);
 
-  // Crescent shadow — overlap a darker circle to create crescent shape
-  p.fill(10, 10, 35);
-  p.circle(SUN_X + 5, SUN_Y - 3, SUN_RADIUS * 1.7);
+  // Subtle craters for texture
+  p.fill(200, 200, 220);
+  p.circle(SUN_X - 4, SUN_Y - 3, 4);
+  p.circle(SUN_X + 3, SUN_Y + 2, 3);
+  p.circle(SUN_X + 5, SUN_Y - 4, 2);
 
-  // Face on the lit part
+  // Face — centered on the moon
   p.fill(80, 80, 100);
   p.noStroke();
-  p.circle(SUN_X - 4, SUN_Y - 2, 2);
-  p.circle(SUN_X - 1, SUN_Y - 2, 2);
+  p.circle(SUN_X - 3, SUN_Y - 2, 2);
+  p.circle(SUN_X + 3, SUN_Y - 2, 2);
 
   if (shocked) {
-    p.circle(SUN_X - 2, SUN_Y + 3, 4);
+    p.circle(SUN_X, SUN_Y + 4, 5);
   } else {
     p.noFill();
     p.stroke(80, 80, 100);
     p.strokeWeight(1);
-    p.arc(SUN_X - 2, SUN_Y + 1, 5, 4, 0, Math.PI);
+    p.arc(SUN_X, SUN_Y + 2, 8, 6, 0, Math.PI);
   }
 }
 
@@ -188,6 +190,73 @@ function drawStars(p: p5): void {
     const twinkle = Math.sin(p.millis() / 500 + sx * 0.7) * 0.3 + 0.7;
     p.fill(255, 255, 240, twinkle * 255);
     p.circle(sx, sy, 1.5);
+  }
+}
+
+export function drawEvilSun(p: p5, timeOfDay: TimeOfDay = "day"): void {
+  const isNight = timeOfDay === "night";
+
+  if (isNight) {
+    drawStars(p);
+  }
+
+  // Larger, more menacing orb
+  const pulse = Math.sin(p.millis() / 200) * 0.15 + 1;
+  const r = SUN_RADIUS * 1.3 * pulse;
+
+  if (isNight) {
+    // Evil red moon
+    p.fill(180, 40, 40);
+    p.noStroke();
+    p.circle(SUN_X, SUN_Y, r * 2);
+    // Red glow
+    p.fill(255, 0, 0, 30);
+    p.circle(SUN_X, SUN_Y, r * 3.5);
+  } else {
+    // Evil red-orange sun
+    p.fill(255, 80, 20);
+    p.noStroke();
+    p.circle(SUN_X, SUN_Y, r * 2);
+    // Angry red rays
+    p.stroke(255, 50, 0);
+    p.strokeWeight(2);
+    for (let i = 0; i < 8; i++) {
+      const angle = (i * Math.PI) / 4 + p.millis() / 800;
+      p.line(
+        SUN_X + Math.cos(angle) * (r + 2),
+        SUN_Y + Math.sin(angle) * (r + 2),
+        SUN_X + Math.cos(angle) * (r + 8),
+        SUN_Y + Math.sin(angle) * (r + 8)
+      );
+    }
+  }
+
+  // Evil eyes — slanted angry eyebrows + red eyes
+  p.noStroke();
+  // Eyebrows (angry V shape)
+  p.stroke(0);
+  p.strokeWeight(1);
+  p.line(SUN_X - 5, SUN_Y - 3, SUN_X - 2, SUN_Y - 5); // left eyebrow angled down-in
+  p.line(SUN_X + 5, SUN_Y - 3, SUN_X + 2, SUN_Y - 5); // right eyebrow angled down-in
+  // Red eyes
+  p.noStroke();
+  p.fill(255, 0, 0);
+  p.circle(SUN_X - 3, SUN_Y - 1, 3);
+  p.circle(SUN_X + 3, SUN_Y - 1, 3);
+  // Pupils
+  p.fill(0);
+  p.circle(SUN_X - 3, SUN_Y - 1, 1.5);
+  p.circle(SUN_X + 3, SUN_Y - 1, 1.5);
+
+  // Maniacal grin — wide, jagged
+  const mouthOpen = Math.sin(p.millis() / 150) * 0.3 + 0.7; // oscillates for laughing
+  p.fill(0);
+  p.arc(SUN_X, SUN_Y + 3, 10, 6 * mouthOpen, 0, Math.PI);
+  // Teeth
+  p.fill(255);
+  const teethY = SUN_Y + 3;
+  for (let tx = SUN_X - 4; tx <= SUN_X + 3; tx += 2) {
+    p.rect(tx, teethY - 1, 1.5, 2);
   }
 }
 

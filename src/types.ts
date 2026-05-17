@@ -31,6 +31,14 @@ export interface Gorilla {
 
 export type ArmState = "down" | "left_up" | "right_up";
 
+export interface GorillaCostume {
+  bodyColor?: string;
+  eyeColor?: string;
+  hat?: "crown" | "tophat" | "banana" | "cowboy" | "yellowhat";
+  coat?: "yellowraincoat" | "cape" | "vest";
+  accessory?: "sunglasses" | "bowtie" | "scar" | "redeyes";
+}
+
 export interface Projectile {
   startX: number;
   startY: number;
@@ -49,6 +57,7 @@ export type GamePhase =
   | "flight"
   | "explosion"
   | "victory"
+  | "bananality"
   | "game_over";
 
 export type GravityPreset = "moon" | "earth" | "jupiter";
