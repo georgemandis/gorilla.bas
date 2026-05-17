@@ -28,7 +28,7 @@ export function getPlayerInput(player: 1 | 2): PlayerInput {
     dpadRight: classic.DPAD.right,
     a: classic.A,
     b: classic.B,
-    spinnerDelta: spinner.SPINNER.step_delta * DEGREES_PER_STEP,
+    spinnerDelta: spinner.SPINNER.consume_step_delta() * DEGREES_PER_STEP,
   };
 }
 
