@@ -11,7 +11,7 @@ export const GRAVITY_VALUES: Record<GravityPreset, number> = {
 };
 export const PHYSICS_DT = 0.1;
 export const MAX_FLIGHT_T = 50.0;
-export const VELOCITY_SCALE = 1.2;
+export const VELOCITY_SCALE = 0.8;
 export const Y_SCALE = HEIGHT / 350;
 
 // Power meter
