@@ -67,6 +67,30 @@ const sketch = (p: p5) => {
   let lastAngles: [number, number] = [INITIAL_ANGLE_P1, INITIAL_ANGLE_P2];
   let loserFallOffset = 0;
   let clouds: { x: number; y: number; w: number; h: number }[] = [];
+  let prevB1 = false;
+  let prevB2 = false;
+  let prevTauntUp = false;
+  let prevTauntSide = false;
+  let tauntDanceTimer = 0;
+  let tauntDancePlayer: 1 | 2 | null = null;
+  let tauntDanceType = 0;
+  let tauntDanceHop = 0;
+  let tauntBubbleTimer = 0;
+  let tauntBubblePlayer: 1 | 2 | null = null;
+  let tauntBubbleText = "";
+  const TAUNT_DANCE_MS = 600;
+  const TAUNT_BUBBLE_MS = 2000;
+  const TAUNTS = [
+    "LOL", "Nice try!", "GG EZ", "Haha!", "Oops!",
+    "Missed!", "Too slow!", "Wow...", "Really?", "Yikes!",
+    "Bruh", "Come on!", "So close!", "Nope!", "Try again!",
+    "Bonk!", ":)", "RIP", "Oof!", "Get rekt!",
+    "Banana breath!", "U mad?", "Skill issue", "LMAO",
+    "Hold this L", "Do over!", "Tragic", "Cope",
+    "EZ clap", "Whiff!", "*yawns*", "Snooze!", "Oh no...",
+    "Git gud", "Weak!", "Lol wut", "Srsly?", "kthxbye",
+    "Ape mode!", "No way!", "BYE BYE", "Later!",
+  ];
   let arcadeFont: p5.Font;
 
   p.preload = () => {
@@ -104,21 +128,28 @@ const sketch = (p: p5) => {
 
       case "aim":
         updateAim(activeInput);
+        updateTaunts(p1Input, p2Input);
         drawGameplay(p);
-        drawActivePlayerIndicator(p, state);
-        drawAngleIndicator(p, state);
+        if (!isActiveTaunting()) {
+          drawActivePlayerIndicator(p, state);
+          drawAngleIndicator(p, state);
+        }
         break;
 
       case "power":
         updatePower(activeInput);
+        updateTaunts(p1Input, p2Input);
         drawGameplay(p);
-        drawActivePlayerIndicator(p, state);
-        drawAngleIndicator(p, state);
+        if (!isActiveTaunting()) {
+          drawActivePlayerIndicator(p, state);
+          drawAngleIndicator(p, state);
+        }
         drawPowerMeter(p, state);
         break;
 
       case "flight":
         updateFlight();
+        updateTaunts(p1Input, p2Input);
         drawGameplay(p);
         drawBanana(p);
         break;
@@ -142,6 +173,8 @@ const sketch = (p: p5) => {
 
     prevA1 = p1Input.a;
     prevA2 = p2Input.a;
+    prevB1 = p1Input.b;
+    prevB2 = p2Input.b;
   };
 
   function updateTitle(sys: ReturnType<typeof getSystemInput>) {
@@ -198,6 +231,7 @@ const sketch = (p: p5) => {
     }
 
     if (sys.onePlayer || sys.twoPlayer) {
+      state.currentPlayer = Math.random() < 0.5 ? 1 : 2;
       startNewRound();
     }
   }
@@ -417,6 +451,121 @@ const sketch = (p: p5) => {
     }
   }
 
+  function isActiveTaunting(): boolean {
+    const cp = state.currentPlayer;
+    const now = p.millis();
+    if (tauntDancePlayer === cp && now - tauntDanceTimer < TAUNT_DANCE_MS) return true;
+    if (tauntBubblePlayer === cp && now - tauntBubbleTimer < TAUNT_BUBBLE_MS) return true;
+    return false;
+  }
+
+  function triggerDance(player: 1 | 2) {
+    const now = p.millis();
+    if (now - tauntDanceTimer > TAUNT_DANCE_MS) {
+      tauntDanceTimer = now;
+      tauntDancePlayer = player;
+      tauntDanceType = (tauntDanceType + 1) % 4;
+      playSound("taunt_dance");
+    }
+  }
+
+  function triggerBubble(player: 1 | 2) {
+    const now = p.millis();
+    if (now - tauntBubbleTimer > TAUNT_BUBBLE_MS) {
+      tauntBubbleTimer = now;
+      tauntBubblePlayer = player;
+      tauntBubbleText = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
+      playSound("taunt_bubble");
+    }
+  }
+
+  function updateTaunts(p1: ReturnType<typeof getPlayerInput>, p2: ReturnType<typeof getPlayerInput>) {
+    const idlePlayer: 1 | 2 = state.currentPlayer === 1 ? 2 : 1;
+    const idleInput = idlePlayer === 1 ? p1 : p2;
+    const idlePrevA = idlePlayer === 1 ? prevA1 : prevA2;
+    const idlePrevB = idlePlayer === 1 ? prevB1 : prevB2;
+
+    // Idle player: A = dance, B = taunt bubble
+    if (idleInput.a && !idlePrevA) triggerDance(idlePlayer);
+    if (idleInput.b && !idlePrevB) triggerBubble(idlePlayer);
+
+    // Active player: dpad up/down = dance, dpad left/right = taunt bubble
+    const activeInput = state.currentPlayer === 1 ? p1 : p2;
+    const activeUp = activeInput.dpadUp || activeInput.dpadDown;
+    const activeSide = activeInput.dpadLeft || activeInput.dpadRight;
+
+    if (activeUp && !prevTauntUp) triggerDance(state.currentPlayer);
+    if (activeSide && !prevTauntSide) triggerBubble(state.currentPlayer);
+
+    prevTauntUp = activeUp;
+    prevTauntSide = activeSide;
+
+    // Update dance animation
+    tauntDanceHop = 0;
+    if (tauntDancePlayer !== null) {
+      const elapsed = p.millis() - tauntDanceTimer;
+      if (elapsed < TAUNT_DANCE_MS) {
+        const gorilla = state.gorillas[tauntDancePlayer - 1];
+        const frame = Math.floor(elapsed / 150) % 2;
+        switch (tauntDanceType) {
+          case 0: // Arm wave
+            gorilla.armState = frame === 0 ? "left_up" : "right_up";
+            break;
+          case 1: // Both arms up with hop
+            gorilla.armState = frame === 0 ? "left_up" : "right_up";
+            tauntDanceHop = frame === 0 ? -2 : 0;
+            break;
+          case 2: // Fast shimmy — one arm up, hopping
+            gorilla.armState = Math.floor(elapsed / 100) % 2 === 0 ? "left_up" : "right_up";
+            tauntDanceHop = Math.floor(elapsed / 100) % 2 === 0 ? -1 : 0;
+            break;
+          case 3: // Big hop, arms down
+            gorilla.armState = "down";
+            tauntDanceHop = Math.floor(elapsed / 200) % 2 === 0 ? -3 : 0;
+            break;
+        }
+      } else {
+        state.gorillas[tauntDancePlayer - 1].armState = "down";
+        tauntDancePlayer = null;
+      }
+    }
+  }
+
+  function drawTauntBubble(p: p5) {
+    if (tauntBubblePlayer === null) return;
+    const elapsed = p.millis() - tauntBubbleTimer;
+    if (elapsed > TAUNT_BUBBLE_MS) {
+      tauntBubblePlayer = null;
+      return;
+    }
+
+    const gorilla = state.gorillas[tauntBubblePlayer - 1];
+    const bx = gorilla.x + GORILLA_WIDTH / 2;
+    const by = gorilla.y - 18;
+
+    // Fade out in the last 500ms
+    const alpha = elapsed > TAUNT_BUBBLE_MS - 500
+      ? Math.floor(255 * (TAUNT_BUBBLE_MS - elapsed) / 500)
+      : 255;
+
+    // Bubble background
+    const tw = p.textWidth(tauntBubbleText) + 8;
+    p.fill(255, 255, 255, alpha);
+    p.noStroke();
+    p.rectMode(p.CENTER);
+    p.rect(bx, by, tw, 12, 3);
+    // Little triangle pointer
+    p.triangle(bx - 3, by + 6, bx + 3, by + 6, bx, by + 10);
+    p.rectMode(p.CORNER);
+
+    // Text
+    p.fill(0, 0, 0, alpha);
+    p.textSize(5);
+    p.textAlign(p.CENTER, p.CENTER);
+    p.noStroke();
+    p.text(tauntBubbleText, bx, by - 1);
+  }
+
   function switchPlayer() {
     state.currentPlayer = state.currentPlayer === 1 ? 2 : 1;
   }
@@ -447,11 +596,18 @@ const sketch = (p: p5) => {
         p.translate(-(g.x + GORILLA_WIDTH / 2), -(g.y + GORILLA_HEIGHT / 2));
         drawGorilla(p, g);
         p.pop();
+      } else if (tauntDancePlayer !== null && i === tauntDancePlayer - 1 && tauntDanceHop !== 0) {
+        // Draw dancing gorilla with hop offset
+        p.push();
+        p.translate(0, tauntDanceHop);
+        drawGorilla(p, state.gorillas[i]);
+        p.pop();
       } else {
         drawGorilla(p, state.gorillas[i]);
       }
     }
 
+    drawTauntBubble(p);
     drawSun(p, state.sunShocked);
     drawScores(p, state);
   }
