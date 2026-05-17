@@ -11,7 +11,7 @@ export const GRAVITY_VALUES: Record<GravityPreset, number> = {
 };
 export const PHYSICS_DT = 0.1;
 export const MAX_FLIGHT_T = 50.0;
-export const VELOCITY_SCALE = 2.5;
+export const VELOCITY_SCALE = 1.2;
 export const Y_SCALE = HEIGHT / 350;
 
 // Power meter
@@ -19,7 +19,7 @@ export const POWER_CYCLE_MS = 1500;
 export const POWER_DEAD_ZONE_MS = 300;
 
 // Spinner
-export const DEGREES_PER_STEP = 2;
+export const DEGREES_PER_STEP = 5;
 export const INITIAL_ANGLE_P1 = 45;
 export const INITIAL_ANGLE_P2 = 135;
 

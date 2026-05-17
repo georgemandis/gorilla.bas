@@ -16,14 +16,14 @@ import {
 
 export function drawScores(p: p5, state: GameState): void {
   p.fill(255);
-  p.textSize(8);
+  p.textSize(6);
   p.noStroke();
 
   p.textAlign(p.LEFT, p.TOP);
-  p.text(`${state.playerNames[0]}: ${state.scores[0]}`, 4, 2);
+  p.text(`${state.playerNames[0]}: ${state.scores[0]}`, 4, 3);
 
   p.textAlign(p.RIGHT, p.TOP);
-  p.text(`${state.playerNames[1]}: ${state.scores[1]}`, WIDTH - 4, 2);
+  p.text(`${state.playerNames[1]}: ${state.scores[1]}`, WIDTH - 4, 3);
 }
 
 export function drawAngleIndicator(p: p5, state: GameState): void {
@@ -35,21 +35,19 @@ export function drawAngleIndicator(p: p5, state: GameState): void {
   const endX = centerX + Math.cos(angleRad) * ANGLE_ARROW_LENGTH;
   const endY = centerY - Math.sin(angleRad) * ANGLE_ARROW_LENGTH;
 
-  // Dashed circle around gorilla to show aiming zone
+  // Faint halo around gorilla
   p.noFill();
-  p.stroke(255, 200, 50, 80);
+  p.stroke(255, 200, 50, 50);
   p.strokeWeight(1);
   p.circle(centerX, centerY, ANGLE_ARROW_LENGTH * 2);
 
-  // Arrow line
-  p.stroke(255, 200, 50);
-  p.strokeWeight(3);
-  p.line(centerX, centerY, endX, endY);
-
-  // Arrowhead
-  p.fill(255, 200, 50);
+  // Pulsating dot on the halo showing aim direction
+  const pulse = (Math.sin(p.millis() / 300) + 1) / 2; // 0..1
+  const alpha = 100 + pulse * 155;
+  const size = 3 + pulse * 2;
+  p.fill(255, 200, 50, alpha);
   p.noStroke();
-  p.circle(endX, endY, 6);
+  p.circle(endX, endY, size);
 }
 
 export function drawActivePlayerIndicator(p: p5, state: GameState): void {
@@ -71,7 +69,7 @@ export function drawActivePlayerIndicator(p: p5, state: GameState): void {
 
   // Player name label above
   p.fill(state.currentPlayer === 1 ? [100, 150, 255] : [255, 100, 100]);
-  p.textSize(7);
+  p.textSize(5);
   p.textAlign(p.CENTER, p.BOTTOM);
   p.noStroke();
   p.text(state.playerNames[state.currentPlayer - 1], centerX, topY - 10);
@@ -165,17 +163,17 @@ export function drawExplosion(p: p5, x: number, y: number, progress: number): vo
 
 export function drawTitleScreen(p: p5): void {
   p.fill(255, 200, 50);
-  p.textSize(14);
+  p.textSize(12);
   p.textAlign(p.CENTER, p.CENTER);
   p.noStroke();
   p.text("GORILLAS.BAS", WIDTH / 2, HEIGHT / 3);
 
   p.fill(180);
-  p.textSize(9);
-  p.text("A QBasic Classic", WIDTH / 2, HEIGHT / 3 + 20);
+  p.textSize(6);
+  p.text("A QBasic Classic", WIDTH / 2, HEIGHT / 3 + 22);
 
   p.fill(255);
-  p.textSize(10);
+  p.textSize(7);
   p.text("Press START", WIDTH / 2, HEIGHT * 2 / 3);
 }
 
@@ -185,7 +183,7 @@ export function drawConfigScreen(
   cursorPos: number
 ): void {
   p.fill(255, 200, 50);
-  p.textSize(12);
+  p.textSize(10);
   p.textAlign(p.CENTER, p.TOP);
   p.noStroke();
   p.text("GORILLAS.BAS", WIDTH / 2, 15);
@@ -193,21 +191,21 @@ export function drawConfigScreen(
   const startY = 50;
   const lineH = 28;
 
-  p.textSize(9);
+  p.textSize(6);
   p.textAlign(p.LEFT, p.TOP);
 
   p.fill(100, 150, 255);
-  p.text(`P1: ${state.playerNames[0]}`, 40, startY);
+  p.text(`P1: ${state.playerNames[0]}`, 30, startY);
   p.fill(80, 80, 120);
-  p.textSize(7);
-  p.text("(spin to re-roll)", 40, startY + 12);
+  p.textSize(5);
+  p.text("(spin to re-roll)", 30, startY + 12);
 
-  p.textSize(9);
+  p.textSize(6);
   p.fill(255, 100, 100);
-  p.text(`P2: ${state.playerNames[1]}`, 40, startY + lineH);
+  p.text(`P2: ${state.playerNames[1]}`, 30, startY + lineH);
   p.fill(80, 80, 120);
-  p.textSize(7);
-  p.text("(spin to re-roll)", 40, startY + lineH + 12);
+  p.textSize(5);
+  p.text("(spin to re-roll)", 30, startY + lineH + 12);
 
   const settingsY = startY + lineH * 3;
   const settings = [
@@ -215,47 +213,48 @@ export function drawConfigScreen(
     { label: "GRAVITY", value: state.gravityPreset.toUpperCase() },
   ];
 
-  p.textSize(9);
+  p.textSize(6);
   for (let i = 0; i < settings.length; i++) {
     const y = settingsY + i * lineH;
     const isSelected = cursorPos === i;
 
     if (isSelected) {
       p.fill(255, 200, 50);
-      p.text(">", 30, y);
+      p.text(">", 20, y);
     }
 
     p.fill(isSelected ? 255 : 150);
-    p.text(`${settings[i].label}:`, 40, y);
+    p.text(`${settings[i].label}:`, 30, y);
     if (isSelected) { p.fill(255, 255, 100); } else { p.fill(200); }
     p.textAlign(p.RIGHT, p.TOP);
-    p.text(`< ${settings[i].value} >`, WIDTH - 40, y);
+    p.text(`< ${settings[i].value} >`, WIDTH - 20, y);
     p.textAlign(p.LEFT, p.TOP);
   }
 
   p.fill(100, 255, 100);
-  p.textSize(9);
+  p.textSize(6);
   p.textAlign(p.CENTER, p.TOP);
   p.text("Press START to play", WIDTH / 2, HEIGHT - 30);
 }
 
 export function drawGameOver(p: p5, state: GameState): void {
   p.fill(255, 100, 100);
-  p.textSize(14);
+  p.textSize(12);
   p.textAlign(p.CENTER, p.CENTER);
   p.noStroke();
   p.text("GAME OVER", WIDTH / 2, HEIGHT / 3);
 
   p.fill(255);
-  p.textSize(10);
+  p.textSize(6);
   p.text(`${state.playerNames[0]}: ${state.scores[0]}`, WIDTH / 2, HEIGHT / 2 - 10);
-  p.text(`${state.playerNames[1]}: ${state.scores[1]}`, WIDTH / 2, HEIGHT / 2 + 10);
+  p.text(`${state.playerNames[1]}: ${state.scores[1]}`, WIDTH / 2, HEIGHT / 2 + 14);
 
   const winner = state.scores[0] >= state.targetScore ? state.playerNames[0] : state.playerNames[1];
   p.fill(255, 200, 50);
-  p.text(`${winner} wins!`, WIDTH / 2, HEIGHT / 2 + 35);
+  p.textSize(7);
+  p.text(`${winner} wins!`, WIDTH / 2, HEIGHT / 2 + 40);
 
   p.fill(150);
-  p.textSize(8);
+  p.textSize(6);
   p.text("Press START", WIDTH / 2, HEIGHT * 3 / 4);
 }

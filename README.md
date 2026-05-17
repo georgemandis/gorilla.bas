@@ -1,129 +1,42 @@
 # GORILLAS.BAS
 
- The legendary QBasic turn-based game featuring gorillas, cityscapes, real physics and exploding bananas.
+A faithful port of the classic QBasic GORILLAS.BAS game, rebuilt for the [RCade](https://rcade.recurse.com) arcade cabinet at the [Recurse Center](https://www.recurse.com/).
 
-## About RCade
+Two gorillas stand atop a randomly generated cityscape. Take turns hurling explosive bananas at each other by setting your angle and power. Account for wind, gravity, and the buildings between you.
 
-This game is built for [RCade](https://rcade.recurse.com), a custom arcade cabinet at The Recurse Center. Learn more about the project at [github.com/fcjr/RCade](https://github.com/fcjr/RCade).
+## How to Play
 
-## Getting Started
+1. Spin the wheel (or press C/V) to aim your throw direction
+2. Press A to lock your angle — the power meter starts oscillating
+3. Release A at your desired power level
+4. Watch your banana fly!
 
-Install dependencies:
+First to the target score wins.
 
-```bash
-npm install
-```
+## Features
 
-Start the development server:
+- Procedurally generated cityscapes with lit/unlit windows
+- Wind and configurable gravity (Moon, Earth, Jupiter)
+- Synthesized retro sound effects via Web Audio API
+- "Press Start 2P" arcade pixel font
+- Random gorilla names (spin to re-roll on the config screen)
+- Configurable target score
+- Victory dances
 
-```bash
-npm run dev
-```
+## Controls
 
-This launches Vite on port 5173 and connects to the RCade cabinet emulator.
+Designed for the RCade arcade cabinet with spinner wheels, joysticks, and buttons.
 
-## Building
-
-```bash
-npm run build
-```
-
-Output goes to `dist/` and is ready for deployment.
-
-## Project Structure
-
-```
-├── public/           # Static assets (copied as-is)
-├── src/
-│   ├── sketch.ts     # p5.js sketch (game code)
-│   └── style.css     # Styles
-├── index.html        # HTML entry
-├── vite.config.js    # Vite configuration
-├── tsconfig.json     # TypeScript config
-└── package.json
-```
-
-## Adding Assets
-
-**Imported assets** (recommended) - Place in `src/` and import them. Vite bundles these with hashed filenames for cache busting:
-
-```ts
-import spriteUrl from './sprite.png';
-
-let sprite: p5.Image;
-
-p.preload = () => {
-    sprite = p.loadImage(spriteUrl);
-};
-
-p.draw = () => {
-    p.image(sprite, x, y);
-};
-```
-
-**Static assets** - Place in `public/` for files copied as-is. Access via root path (`/sprite.png`).
-
-## p5.js Basics
-
-The template uses p5.js in [instance mode](https://github.com/processing/p5.js/wiki/Global-and-instance-mode) with TypeScript:
-
-```ts
-import p5 from "p5";
-
-const sketch = (p: p5) => {
-    p.setup = () => {
-        p.createCanvas(336, 262);  // RCade dimensions
-    };
-
-    p.draw = () => {
-        p.background(26, 26, 46);
-        p.fill(255);
-        p.ellipse(p.width / 2, p.height / 2, 50, 50);
-    };
-};
-
-new p5(sketch, document.getElementById("sketch")!);
-```
-
-## Arcade Controls
-
-This template uses `@rcade/plugin-input-classic` for arcade input:
-
-```ts
-import { PLAYER_1, SYSTEM } from '@rcade/plugin-input-classic'
-
-// D-pad
-if (PLAYER_1.DPAD.up) { /* ... */ }
-if (PLAYER_1.DPAD.down) { /* ... */ }
-if (PLAYER_1.DPAD.left) { /* ... */ }
-if (PLAYER_1.DPAD.right) { /* ... */ }
-
-// Buttons
-if (PLAYER_1.A) { /* ... */ }
-if (PLAYER_1.B) { /* ... */ }
-
-// System
-if (SYSTEM.ONE_PLAYER) { /* Start game */ }
-```
-
-### Development Keyboard Controls
-
-When developing locally, keyboard inputs are mapped to arcade controls:
+### Keyboard Controls (Development)
 
 **Classic Controls (`@rcade/plugin-input-classic`)**
 
 | Player   | Action           | Key |
 |----------|------------------|-----|
-| Player 1 | UP               | W   |
-| Player 1 | DOWN             | S   |
-| Player 1 | LEFT             | A   |
-| Player 1 | RIGHT            | D   |
+| Player 1 | D-pad            | W/A/S/D |
 | Player 1 | A Button         | F   |
 | Player 1 | B Button         | G   |
-| Player 2 | UP               | I   |
-| Player 2 | DOWN             | K   |
-| Player 2 | LEFT             | J   |
-| Player 2 | RIGHT            | L   |
+| Player 2 | D-pad            | I/J/K/L |
 | Player 2 | A Button         | ;   |
 | Player 2 | B Button         | '   |
 | System   | One Player Start | 1   |
@@ -138,30 +51,47 @@ When developing locally, keyboard inputs are mapped to arcade controls:
 | Player 2 | Spinner Left  | .   |
 | Player 2 | Spinner Right | /   |
 
-Spinners repeat at ~60Hz while held.
+## Development
 
-To add spinner support: `npm install @rcade/plugin-input-spinners`
+```bash
+bun install
+bun run dev
+```
 
-## RCade Screen Size
+This launches Vite on port 5173 and connects to the RCade cabinet emulator.
 
-The RCade cabinet uses a 336x262 pixel display. The template is pre-configured with these dimensions.
+## Building
+
+```bash
+bun run build
+```
+
+Output goes to `dist/`.
 
 ## Deployment
 
-First, create a new repository on GitHub:
+Connect to a GitHub repo and push — the included GitHub Actions workflow will automatically deploy to RCade.
 
-1. Go to [github.com/new](https://github.com/new)
-2. Create a new repository (can be public or private)
-3. **Don't** initialize it with a README, .gitignore, or license
+## Tech Stack
 
-Then connect your local project and push:
+- TypeScript + P5.js (instance mode)
+- Vite + Bun
+- RCade SDK (`@rcade/plugin-input-classic`, `@rcade/plugin-input-spinners`)
+- Web Audio API (synthesized sound effects — no audio files)
 
-```bash
-git remote add origin git@github.com:YOUR_USERNAME/YOUR_REPO.git
-git push -u origin main
-```
+## Future Ideas
 
-The included GitHub Actions workflow will automatically deploy to RCade.
+- Real-time simultaneous mode — both players throw at the same time, bananas can collide mid-air
+- Destructible buildings — explosions carve chunks out of the cityscape
+- Custom gorilla skins
+- Different banana types (curve ball, cluster bomb, etc.)
+- Music and expanded sound design
+
+## Credits
+
+Based on the original GORILLAS.BAS by IBM, bundled with MS-DOS 5.0 QBasic (1991).
+
+Built by [George Mandis](https://george.mand.is) at the [Recurse Center](https://www.recurse.com/) (Spring 2, 2026).
 
 ---
 

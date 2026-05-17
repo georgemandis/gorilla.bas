@@ -20,6 +20,7 @@ import {
   drawGameOver,
 } from "./ui";
 import { randomName } from "./names";
+import { playSound, startPowerHum, updatePowerHum, stopPowerHum } from "./sound";
 
 function createInitialState(): GameState {
   return {
@@ -62,9 +63,15 @@ const sketch = (p: p5) => {
   let explosionX = 0;
   let explosionY = 0;
   let bananaRotation = 0;
+  let arcadeFont: p5.Font;
+
+  p.preload = () => {
+    arcadeFont = p.loadFont("PressStart2P.ttf");
+  };
 
   p.setup = () => {
     p.createCanvas(WIDTH, HEIGHT);
+    p.textFont(arcadeFont);
     state = createInitialState();
   };
 
@@ -217,6 +224,7 @@ const sketch = (p: p5) => {
     // Spinner rotates angle
     if (input.spinnerDelta !== 0) {
       state.angle = (state.angle + input.spinnerDelta + 360) % 360;
+      playSound("aim_tick");
     }
 
     // A button pressed (edge detection)
@@ -226,6 +234,8 @@ const sketch = (p: p5) => {
       state.powerMeterValue = 0;
       state.powerMeterDirection = 1;
       state.powerDeadZoneTimer = p.millis();
+      playSound("power_lock");
+      startPowerHum();
 
       // Throwing arm animation
       const gorilla = state.gorillas[state.currentPlayer - 1];
@@ -239,10 +249,12 @@ const sketch = (p: p5) => {
     const activeTime = Math.max(0, elapsed - POWER_DEAD_ZONE_MS);
     const cycleProgress = (activeTime % POWER_CYCLE_MS) / POWER_CYCLE_MS;
     state.powerMeterValue = Math.abs(Math.sin(cycleProgress * Math.PI));
+    updatePowerHum(state.powerMeterValue);
 
     // Check for A release (after dead zone)
     if (!input.a && elapsed > POWER_DEAD_ZONE_MS) {
       state.power = state.powerMeterValue * 100;
+      stopPowerHum();
       launchBanana();
     }
   }
@@ -255,6 +267,7 @@ const sketch = (p: p5) => {
     state.projectile = createProjectile(startX, startY, state.angle, state.power);
     state.phase = "flight";
     bananaRotation = 0;
+    playSound("throw");
 
     // Reset arm
     gorilla.armState = "down";
@@ -288,6 +301,7 @@ const sketch = (p: p5) => {
         state.explosionTimer = p.millis();
         state.lastHitPlayer = null;
         state.phase = "explosion";
+        playSound("explosion");
         break;
       case "gorilla":
         explosionX = pos.x;
@@ -296,6 +310,7 @@ const sketch = (p: p5) => {
         state.explosionTimer = p.millis();
         state.lastHitPlayer = result.gorilla.playerNum;
         state.phase = "explosion";
+        playSound("hit");
         break;
     }
   }
@@ -317,6 +332,7 @@ const sketch = (p: p5) => {
         }
         state.victoryTimer = p.millis();
         state.phase = "victory";
+        playSound("victory");
       } else {
         // Building hit — switch player
         switchPlayer();
