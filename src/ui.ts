@@ -42,13 +42,17 @@ export function drawAngleIndicator(p: p5, state: GameState): void {
   p.strokeWeight(1);
   p.circle(centerX, centerY, ANGLE_ARROW_LENGTH * 2);
 
-  // Pulsating dot on the halo showing aim direction
+  // Pulsating banana on the halo showing aim direction
   const pulse = (Math.sin(p.millis() / 300) + 1) / 2; // 0..1
-  const alpha = 100 + pulse * 155;
-  const size = 3 + pulse * 2;
-  p.fill(255, 200, 50, alpha);
+  const scale = 1 + pulse * 0.3;
+  p.push();
+  p.translate(endX, endY);
+  p.rotate(-angleRad);
+  p.scale(scale);
+  p.fill(255, 255, 0);
   p.noStroke();
-  p.circle(endX, endY, size);
+  p.arc(0, 0, 8, 6, 0, Math.PI);
+  p.pop();
 }
 
 export function drawActivePlayerIndicator(p: p5, state: GameState): void {

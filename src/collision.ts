@@ -45,6 +45,17 @@ export function checkCollision(
       y >= building.y &&
       y <= building.y + building.height
     ) {
+      // Check if point falls inside an existing damage hole (pass-through)
+      let inDamage = false;
+      for (const hole of building.damage) {
+        const dx = x - hole.cx;
+        const dy = y - hole.cy;
+        if (dx * dx + dy * dy <= hole.radius * hole.radius) {
+          inDamage = true;
+          break;
+        }
+      }
+      if (inDamage) continue;
       return { type: "building", building };
     }
   }

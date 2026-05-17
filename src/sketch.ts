@@ -8,6 +8,7 @@ import {
   TARGET_SCORE_OPTIONS, GRAVITY_PRESET_OPTIONS,
   GORILLA_WIDTH, GORILLA_HEIGHT,
   WINDOW_COLOR_LIT, WINDOW_COLOR_DARK,
+  EXPLOSION_RADIUS, BOTTOM_LINE,
 } from "./config";
 import { getPlayerInput, getSystemInput } from "./input";
 import { generateCityscape, placeGorillas, generateWind } from "./city";
@@ -16,7 +17,7 @@ import { checkCollision } from "./collision";
 import { drawGorilla } from "./gorilla";
 import {
   drawScores, drawAngleIndicator, drawActivePlayerIndicator, drawPowerMeter,
-  drawSun, drawWindArrow, drawExplosion, drawTitleScreen, drawConfigScreen,
+  drawSun, drawExplosion, drawTitleScreen, drawConfigScreen,
   drawGameOver,
 } from "./ui";
 import { randomName } from "./names";
@@ -63,6 +64,9 @@ const sketch = (p: p5) => {
   let explosionX = 0;
   let explosionY = 0;
   let bananaRotation = 0;
+  let lastAngles: [number, number] = [INITIAL_ANGLE_P1, INITIAL_ANGLE_P2];
+  let loserFallOffset = 0;
+  let clouds: { x: number; y: number; w: number; h: number }[] = [];
   let arcadeFont: p5.Font;
 
   p.preload = () => {
@@ -198,6 +202,19 @@ const sketch = (p: p5) => {
     }
   }
 
+  function generateClouds() {
+    clouds = [];
+    const count = 2 + Math.floor(Math.random() * 3); // 2-4 clouds
+    for (let i = 0; i < count; i++) {
+      clouds.push({
+        x: Math.random() * WIDTH,
+        y: 30 + Math.random() * 50,
+        w: 20 + Math.random() * 25,
+        h: 8 + Math.random() * 6,
+      });
+    }
+  }
+
   function startNewRound() {
     state.buildings = generateCityscape();
     const positions = placeGorillas(state.buildings);
@@ -209,13 +226,14 @@ const sketch = (p: p5) => {
     state.gorillas[1].armState = "down";
     state.wind = generateWind();
     state.sunShocked = false;
+    generateClouds();
     state.phase = "round_start";
     state.roundStartTimer = p.millis();
   }
 
   function updateRoundStart() {
     if (p.millis() - state.roundStartTimer > ROUND_START_DELAY_MS) {
-      state.angle = state.currentPlayer === 1 ? INITIAL_ANGLE_P1 : INITIAL_ANGLE_P2;
+      state.angle = lastAngles[state.currentPlayer - 1];
       state.phase = "aim";
     }
   }
@@ -260,9 +278,15 @@ const sketch = (p: p5) => {
   }
 
   function launchBanana() {
+    // Remember this player's angle for their next turn
+    lastAngles[state.currentPlayer - 1] = state.angle;
+
     const gorilla = state.gorillas[state.currentPlayer - 1];
-    const startX = gorilla.x + GORILLA_WIDTH / 2;
-    const startY = gorilla.y;
+    // Launch from above the gorilla's head, offset in throw direction
+    const angleRad = (state.angle * Math.PI) / 180;
+    const launchOffset = GORILLA_HEIGHT / 2 + 5;
+    const startX = gorilla.x + GORILLA_WIDTH / 2 + Math.cos(angleRad) * launchOffset;
+    const startY = gorilla.y - Math.sin(angleRad) * launchOffset;
 
     state.projectile = createProjectile(startX, startY, state.angle, state.power);
     state.phase = "flight";
@@ -291,7 +315,7 @@ const sketch = (p: p5) => {
       case "miss":
         state.projectile = null;
         switchPlayer();
-        state.angle = state.currentPlayer === 1 ? INITIAL_ANGLE_P1 : INITIAL_ANGLE_P2;
+        state.angle = lastAngles[state.currentPlayer - 1];
         state.phase = "aim";
         break;
       case "building":
@@ -301,6 +325,8 @@ const sketch = (p: p5) => {
         state.explosionTimer = p.millis();
         state.lastHitPlayer = null;
         state.phase = "explosion";
+        // Carve damage hole in the building
+        result.building.damage.push({ cx: pos.x, cy: pos.y, radius: EXPLOSION_RADIUS });
         playSound("explosion");
         break;
       case "gorilla":
@@ -332,11 +358,12 @@ const sketch = (p: p5) => {
         }
         state.victoryTimer = p.millis();
         state.phase = "victory";
+        loserFallOffset = 0;
         playSound("victory");
       } else {
         // Building hit — switch player
         switchPlayer();
-        state.angle = state.currentPlayer === 1 ? INITIAL_ANGLE_P1 : INITIAL_ANGLE_P2;
+        state.angle = lastAngles[state.currentPlayer - 1];
         state.phase = "aim";
       }
     }
@@ -362,6 +389,9 @@ const sketch = (p: p5) => {
     const danceFrame = Math.floor(elapsed / 250) % 2;
     state.gorillas[winnerIdx].armState = danceFrame === 0 ? "left_up" : "right_up";
 
+    // Loser falls off screen with acceleration
+    loserFallOffset += 0.5 + loserFallOffset * 0.05;
+
     if (elapsed > VICTORY_DURATION_MS) {
       // Reset arms
       state.gorillas[0].armState = "down";
@@ -383,6 +413,7 @@ const sketch = (p: p5) => {
   function updateGameOver(sys: ReturnType<typeof getSystemInput>) {
     if (sys.onePlayer || sys.twoPlayer) {
       state = createInitialState();
+      lastAngles = [INITIAL_ANGLE_P1, INITIAL_ANGLE_P2];
     }
   }
 
@@ -391,12 +422,56 @@ const sketch = (p: p5) => {
   }
 
   function drawGameplay(p: p5) {
+    // Ground
+    p.noStroke();
+    p.fill(30, 30, 50);
+    p.rect(0, BOTTOM_LINE, WIDTH, HEIGHT - BOTTOM_LINE);
+
+    // Move and draw clouds (behind everything else, but in front of sky)
+    updateAndDrawClouds(p);
+
     drawCity(p, state.buildings);
-    drawGorilla(p, state.gorillas[0]);
-    drawGorilla(p, state.gorillas[1]);
+
+    // Determine loser index during victory phase
+    const loserIdx = state.phase === "victory" && state.lastHitPlayer !== null
+      ? state.lastHitPlayer - 1
+      : -1;
+
+    for (let i = 0; i < 2; i++) {
+      if (i === loserIdx) {
+        // Draw loser flipped upside down, falling
+        const g = state.gorillas[i];
+        p.push();
+        p.translate(g.x + GORILLA_WIDTH / 2, g.y + GORILLA_HEIGHT / 2 + loserFallOffset);
+        p.scale(1, -1);
+        p.translate(-(g.x + GORILLA_WIDTH / 2), -(g.y + GORILLA_HEIGHT / 2));
+        drawGorilla(p, g);
+        p.pop();
+      } else {
+        drawGorilla(p, state.gorillas[i]);
+      }
+    }
+
     drawSun(p, state.sunShocked);
-    drawWindArrow(p, state.wind);
     drawScores(p, state);
+  }
+
+  function updateAndDrawClouds(p: p5) {
+    const speed = state.wind * 0.15;
+    p.noStroke();
+
+    for (const c of clouds) {
+      c.x += speed;
+      // Wrap around screen
+      if (c.x > WIDTH + c.w) c.x = -c.w;
+      if (c.x < -c.w) c.x = WIDTH + c.w;
+
+      // Draw a soft cloud shape: overlapping ellipses
+      p.fill(200, 200, 220, 40);
+      p.ellipse(c.x, c.y, c.w, c.h);
+      p.ellipse(c.x - c.w * 0.25, c.y + 1, c.w * 0.6, c.h * 0.7);
+      p.ellipse(c.x + c.w * 0.25, c.y + 1, c.w * 0.6, c.h * 0.7);
+    }
   }
 
   function drawCity(p: p5, buildings: Building[]) {
@@ -404,9 +479,29 @@ const sketch = (p: p5) => {
       p.fill(b.color);
       p.noStroke();
       p.rect(b.x, b.y, b.width, b.height);
+
+      // Draw windows (skip any inside damage holes)
       for (const w of b.windows) {
-        p.fill(w.lit ? WINDOW_COLOR_LIT : WINDOW_COLOR_DARK);
-        p.rect(w.x, w.y, 3, 5);
+        let destroyed = false;
+        for (const hole of b.damage) {
+          const dx = w.x + 1.5 - hole.cx;
+          const dy = w.y + 2.5 - hole.cy;
+          if (dx * dx + dy * dy <= hole.radius * hole.radius) {
+            destroyed = true;
+            break;
+          }
+        }
+        if (!destroyed) {
+          p.fill(w.lit ? WINDOW_COLOR_LIT : WINDOW_COLOR_DARK);
+          p.rect(w.x, w.y, 3, 5);
+        }
+      }
+
+      // Draw damage holes: sky-colored circles
+      for (const hole of b.damage) {
+        p.noStroke();
+        p.fill(50, 50, 120);
+        p.ellipse(hole.cx, hole.cy, hole.radius * 2, hole.radius * 2);
       }
     }
   }
