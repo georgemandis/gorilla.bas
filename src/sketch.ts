@@ -27,7 +27,7 @@ import { randomName } from "./names";
 import { getCostume } from "./costumes";
 import { playSound, startPowerHum, updatePowerHum, stopPowerHum } from "./sound";
 import { trySpawnCrate, updateCrateFall, drawCrate, collectCrate, cycleSelectedPowerUp, consumeSelectedPowerUp } from "./powerups";
-import { applyPowerUpToProjectile } from "./powerup-behaviors";
+import { applyPowerUpToProjectile, handleRicochet, handleWrapAround } from "./powerup-behaviors";
 
 function createInitialState(): GameState {
   return {
@@ -449,10 +449,37 @@ const sketch = (p: p5) => {
       case "sun":
         state.sunShocked = true;
         break;
-      case "miss":
+      case "miss": {
+        const pos2 = getProjectilePositionWithGravity(state.projectile!, state.wind, state.gravity);
+        const isEdgeMiss = pos2.x < 0 || pos2.x > WIDTH || pos2.y < 0;
+        const isGroundMiss = pos2.y > BOTTOM_LINE;
+
+        if (isEdgeMiss && !isGroundMiss) {
+          // Try ricochet
+          if (state.projectile!.bouncesRemaining) {
+            const bounced = handleRicochet(state.projectile!, pos2.x, pos2.y, state.wind, state.gravity);
+            if (bounced) {
+              state.projectile = bounced;
+              playSound("aim_tick");
+              return;
+            }
+          }
+
+          // Try wrap-around
+          if (state.projectile!.wrapsRemaining) {
+            const wrapped = handleWrapAround(state.projectile!, pos2.x, pos2.y, state.wind, state.gravity);
+            if (wrapped) {
+              state.projectile = wrapped;
+              return;
+            }
+          }
+        }
+
+        // Normal miss
         state.projectile = null;
         resolveThrowEnd();
         break;
+      }
       case "building": {
         explosionX = pos.x;
         explosionY = pos.y;

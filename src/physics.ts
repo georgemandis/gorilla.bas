@@ -33,3 +33,20 @@ export function getProjectilePositionWithGravity(
 export function advanceProjectile(proj: Projectile): void {
   proj.t += PHYSICS_DT;
 }
+
+export function restartProjectile(
+  proj: Projectile,
+  newX: number,
+  newY: number,
+  newVx: number,
+  newVy: number
+): Projectile {
+  return {
+    ...proj,
+    startX: newX,
+    startY: newY,
+    vx: newVx,
+    vy: newVy,
+    t: 0,
+  };
+}
