@@ -26,6 +26,7 @@ import {
 import { randomName } from "./names";
 import { getCostume } from "./costumes";
 import { playSound, startPowerHum, updatePowerHum, stopPowerHum } from "./sound";
+import { trySpawnCrate, updateCrateFall, drawCrate } from "./powerups";
 
 function createInitialState(): GameState {
   return {
@@ -331,6 +332,13 @@ const sketch = (p: p5) => {
     state.wind = generateWind();
     state.sunShocked = false;
     generateClouds();
+    state.crate = null;
+    state.portals = [null, null];
+    state.activeSubProjectiles = [];
+    state.extraThrowRemaining = false;
+    state.isExtraThrow = false;
+    state.selectedPowerUp = null;
+    state.selectedSlotIndex = -1;
     state.phase = "round_start";
     state.roundStartTimer = p.millis();
   }
@@ -339,6 +347,7 @@ const sketch = (p: p5) => {
     if (p.millis() - state.roundStartTimer > ROUND_START_DELAY_MS) {
       state.angle = lastAngles[state.currentPlayer - 1];
       state.phase = "aim";
+      trySpawnCrate(state, state.wind);
     }
   }
 
@@ -421,6 +430,7 @@ const sketch = (p: p5) => {
         switchPlayer();
         state.angle = lastAngles[state.currentPlayer - 1];
         state.phase = "aim";
+        trySpawnCrate(state, state.wind);
         break;
       case "building":
         explosionX = pos.x;
@@ -472,6 +482,7 @@ const sketch = (p: p5) => {
         switchPlayer();
         state.angle = lastAngles[state.currentPlayer - 1];
         state.phase = "aim";
+        trySpawnCrate(state, state.wind);
       }
     }
   }
@@ -939,6 +950,12 @@ const sketch = (p: p5) => {
     updateAndDrawClouds(p);
 
     drawCity(p, state.buildings);
+
+    // Draw crate
+    if (state.crate) {
+      updateCrateFall(state.crate);
+      drawCrate(p, state.crate);
+    }
 
     // Determine loser index during victory phase
     const loserIdx = state.phase === "victory" && state.lastHitPlayer !== null
