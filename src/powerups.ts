@@ -64,6 +64,39 @@ export function collectCrate(state: GameState, playerIdx: 0 | 1): PowerUpType | 
   return null;
 }
 
+export function cycleSelectedPowerUp(state: GameState, playerIdx: 0 | 1): void {
+  const inv = state.inventory[playerIdx];
+  if (inv.length === 0) {
+    state.selectedPowerUp = null;
+    state.selectedSlotIndex = -1;
+    return;
+  }
+
+  if (state.selectedSlotIndex === -1 || state.selectedPowerUp === null) {
+    state.selectedSlotIndex = 0;
+    state.selectedPowerUp = inv[0];
+  } else if (state.selectedSlotIndex >= inv.length - 1) {
+    state.selectedSlotIndex = -1;
+    state.selectedPowerUp = null;
+  } else {
+    state.selectedSlotIndex++;
+    state.selectedPowerUp = inv[state.selectedSlotIndex];
+  }
+}
+
+export function consumeSelectedPowerUp(state: GameState, playerIdx: 0 | 1): PowerUpType | null {
+  const selected = state.selectedPowerUp;
+  if (!selected || state.selectedSlotIndex === -1) return null;
+
+  const inv = state.inventory[playerIdx];
+  if (state.selectedSlotIndex < inv.length) {
+    inv.splice(state.selectedSlotIndex, 1);
+  }
+  state.selectedPowerUp = null;
+  state.selectedSlotIndex = -1;
+  return selected;
+}
+
 export function drawCrate(p: p5, crate: PowerUpCrate): void {
   const drawX = crate.x;
   const drawY = crate.falling ? crate.fallY : crate.y;

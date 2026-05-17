@@ -1,5 +1,5 @@
 import p5 from "p5";
-import type { GameState, TimeOfDay } from "./types";
+import type { GameState, TimeOfDay, PowerUpType } from "./types";
 import {
   WIDTH,
   HEIGHT,
@@ -49,9 +49,56 @@ export function drawAngleIndicator(p: p5, state: GameState): void {
   p.translate(endX, endY);
   p.rotate(-angleRad);
   p.scale(scale);
-  p.fill(255, 255, 0);
   p.noStroke();
-  p.arc(0, 0, 8, 6, 0, Math.PI);
+  switch (state.selectedPowerUp) {
+    case "big_banana":
+      p.fill(255, 255, 0);
+      p.arc(0, 0, 12, 9, 0, Math.PI);
+      break;
+    case "two_bananas":
+      p.fill(255, 255, 0);
+      p.arc(-3, 0, 6, 4, 0, Math.PI);
+      p.arc(3, 0, 6, 4, 0, Math.PI);
+      break;
+    case "ricochet":
+      p.fill(0, 200, 255);
+      p.arc(0, 0, 8, 6, 0, Math.PI);
+      break;
+    case "wrap_around":
+      p.fill(200, 0, 255);
+      p.arc(0, 0, 8, 6, 0, Math.PI);
+      break;
+    case "cluster_bomb":
+      p.fill(255, 100, 0);
+      p.arc(0, 0, 8, 6, 0, Math.PI);
+      p.fill(255, 255, 0);
+      p.circle(-3, -3, 2);
+      p.circle(3, -3, 2);
+      break;
+    case "teleportation":
+      p.fill(0, 255, 200);
+      p.arc(0, 0, 8, 6, 0, Math.PI);
+      break;
+    case "portal":
+      p.fill(255, 140, 0);
+      p.arc(0, 0, 8, 6, 0, Math.PI);
+      p.noFill();
+      p.stroke(0, 140, 255);
+      p.strokeWeight(1);
+      p.circle(0, 0, 10);
+      p.noStroke();
+      break;
+    case "poison":
+      p.fill(0, 200, 0);
+      p.arc(0, 0, 8, 6, 0, Math.PI);
+      break;
+    case "confetti":
+    case null:
+    default:
+      p.fill(255, 255, 0);
+      p.arc(0, 0, 8, 6, 0, Math.PI);
+      break;
+  }
   p.pop();
 }
 
@@ -378,6 +425,70 @@ export function drawConfigScreen(
   p.textSize(6);
   p.textAlign(p.CENTER, p.TOP);
   p.text("Press START to play", WIDTH / 2, HEIGHT - 30);
+}
+
+export function drawInventoryHUD(p: p5, state: GameState): void {
+  const iconSize = 5;
+  const spacing = 7;
+
+  // Player 1 inventory — below score, left side
+  for (let i = 0; i < state.inventory[0].length; i++) {
+    const x = 4 + i * spacing;
+    const y = 12;
+    drawPowerUpIcon(p, x, y, iconSize, state.inventory[0][i]);
+  }
+
+  // Player 2 inventory — below score, right side
+  for (let i = 0; i < state.inventory[1].length; i++) {
+    const x = WIDTH - 4 - (state.inventory[1].length - i) * spacing;
+    const y = 12;
+    drawPowerUpIcon(p, x, y, iconSize, state.inventory[1][i]);
+  }
+}
+
+function drawPowerUpIcon(p: p5, x: number, y: number, size: number, type: PowerUpType): void {
+  p.noStroke();
+  switch (type) {
+    case "big_banana":
+      p.fill(255, 255, 0);
+      p.circle(x + size / 2, y + size / 2, size);
+      break;
+    case "two_bananas":
+      p.fill(255, 255, 0);
+      p.circle(x + 1, y + size / 2, size * 0.7);
+      p.circle(x + size - 1, y + size / 2, size * 0.7);
+      break;
+    case "ricochet":
+      p.fill(0, 200, 255);
+      p.circle(x + size / 2, y + size / 2, size);
+      break;
+    case "wrap_around":
+      p.fill(200, 0, 255);
+      p.circle(x + size / 2, y + size / 2, size);
+      break;
+    case "cluster_bomb":
+      p.fill(255, 100, 0);
+      p.circle(x + size / 2, y + size / 2, size);
+      break;
+    case "teleportation":
+      p.fill(0, 255, 200);
+      p.circle(x + size / 2, y + size / 2, size);
+      break;
+    case "portal":
+      p.fill(255, 140, 0);
+      p.circle(x + size / 2, y + size / 2, size);
+      p.fill(0, 140, 255);
+      p.circle(x + size / 2, y + size / 2, size * 0.5);
+      break;
+    case "confetti":
+      p.fill(255, 255, 0);
+      p.circle(x + size / 2, y + size / 2, size);
+      break;
+    case "poison":
+      p.fill(0, 200, 0);
+      p.circle(x + size / 2, y + size / 2, size);
+      break;
+  }
 }
 
 export function drawGameOver(p: p5, state: GameState): void {

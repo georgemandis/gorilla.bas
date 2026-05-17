@@ -21,12 +21,12 @@ import { drawGorilla } from "./gorilla";
 import {
   drawScores, drawAngleIndicator, drawActivePlayerIndicator, drawPowerMeter,
   drawSun, drawEvilSun, drawExplosion, drawTitleScreen, drawConfigScreen,
-  drawGameOver,
+  drawGameOver, drawInventoryHUD,
 } from "./ui";
 import { randomName } from "./names";
 import { getCostume } from "./costumes";
 import { playSound, startPowerHum, updatePowerHum, stopPowerHum } from "./sound";
-import { trySpawnCrate, updateCrateFall, drawCrate, collectCrate } from "./powerups";
+import { trySpawnCrate, updateCrateFall, drawCrate, collectCrate, cycleSelectedPowerUp } from "./powerups";
 
 function createInitialState(): GameState {
   return {
@@ -356,6 +356,13 @@ const sketch = (p: p5) => {
     if (input.spinnerDelta !== 0) {
       state.angle = (state.angle + input.spinnerDelta + 360) % 360;
       playSound("aim_tick");
+    }
+
+    // B button cycles power-up selection (active player only)
+    const prevB = state.currentPlayer === 1 ? prevB1 : prevB2;
+    if (input.b && !prevB) {
+      cycleSelectedPowerUp(state, (state.currentPlayer - 1) as 0 | 1);
+      playSound("powerup_select");
     }
 
     // A button pressed (edge detection)
@@ -953,6 +960,9 @@ const sketch = (p: p5) => {
 
   function switchPlayer() {
     state.currentPlayer = state.currentPlayer === 1 ? 2 : 1;
+    state.selectedPowerUp = null;
+    state.selectedSlotIndex = -1;
+    state.isExtraThrow = false;
   }
 
   function drawGameplay(p: p5) {
@@ -1002,6 +1012,7 @@ const sketch = (p: p5) => {
     drawTauntBubble(p);
     drawSun(p, state.sunShocked, state.timeOfDay);
     drawScores(p, state);
+    drawInventoryHUD(p, state);
   }
 
   function updateAndDrawClouds(p: p5) {
