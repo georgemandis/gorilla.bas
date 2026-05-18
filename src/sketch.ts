@@ -34,7 +34,7 @@ import {
 import { randomName } from "./names";
 import { getCostume } from "./costumes";
 import { playSound, startPowerHum, updatePowerHum, stopPowerHum } from "./sound";
-import { trySpawnCrate, updateCrateFall, drawCrate, collectCrate, consumeSelectedPowerUp } from "./powerups";
+import { trySpawnCrate, updateCrateFall, drawCrate, collectCrate, consumeSelectedPowerUp, powerUpShortName } from "./powerups";
 import { applyPowerUpToProjectile, handleRicochet, handleWrapAround, splitClusterBomb, checkPortalEntry, applyHomingNudge, handleRubberBounce, applyDrunkWobble, handleBoomerangReturn } from "./powerup-behaviors";
 
 function createInitialState(): GameState {
@@ -1082,19 +1082,14 @@ const sketch = (p: p5) => {
         break;
       }
       case "crate": {
-        explosionX = pos.x;
-        explosionY = pos.y;
-        state.projectile = null;
-        state.explosionTimer = p.millis();
-        state.lastHitPlayer = null;
-        state.phase = "explosion";
-        const playerIdx = (state.currentPlayer - 1) as 0 | 1;
-        const collected = collectCrate(state, playerIdx);
-        if (collected) {
-          playSound("crate_collect");
-        } else {
-          playSound("explosion");
+        // Banana destroys crate — no explosion, banana continues
+        if (state.crate) {
+          const shortName = powerUpShortName(state.crate.powerUp);
+          setFloatingText(state.crate.x + 5, state.crate.y, shortName, "red");
+          playSound("crate_destroy");
+          state.crate = null;
         }
+        // Don't stop the projectile — it continues its flight
         break;
       }
       case "gorilla": {
@@ -1237,10 +1232,13 @@ const sketch = (p: p5) => {
           return;
         }
         case "crate": {
-          const playerIdx = (state.currentPlayer - 1) as 0 | 1;
-          const collected = collectCrate(state, playerIdx);
-          if (collected) playSound("crate_collect");
-          sub.active = false;
+          if (state.crate) {
+            const shortName = powerUpShortName(state.crate.powerUp);
+            setFloatingText(state.crate.x + 5, state.crate.y, shortName, "red");
+            playSound("crate_destroy");
+            state.crate = null;
+          }
+          // Sub-projectile continues
           break;
         }
       }
