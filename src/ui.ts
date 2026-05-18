@@ -601,12 +601,14 @@ export function drawInventoryHUD(p: p5, state: GameState): void {
   if (state.inventoryOpen) {
     const playerIdx = (state.currentPlayer - 1) as 0 | 1;
     const inv = state.inventory[playerIdx];
-    if (inv.length === 0) return;
 
-    // Panel dimensions
+    // Panel dimensions — jump row + divider + inventory items
     const itemH = 12;
+    const jumpRowH = itemH;
+    const dividerH = 4;
+    const inventoryH = inv.length > 0 ? Math.min(inv.length * itemH, 120 - jumpRowH - dividerH) : 0;
+    const panelH = jumpRowH + dividerH + inventoryH + 8;
     const panelW = 80;
-    const panelH = Math.min(inv.length * itemH + 8, 120);
     const panelX = state.currentPlayer === 1 ? 4 : WIDTH - panelW - 4;
     const panelY = 20;
 
@@ -622,27 +624,65 @@ export function drawInventoryHUD(p: p5, state: GameState): void {
     p.rect(panelX, panelY, panelW, panelH);
     p.noStroke();
 
-    // Items list (scrollable if too many)
-    const maxVisible = Math.floor((panelH - 8) / itemH);
+    // Jump row (always first)
+    const jumpY = panelY + 4;
+    const isJumpSelected = state.selectedSlotIndex === -1;
+    const isJumpBlocked = state.poisonTurns[playerIdx] > 0 || state.iceTurns[playerIdx] > 0;
+
+    if (isJumpSelected) {
+      p.fill(255, 255, 100, 40);
+      p.noStroke();
+      p.rect(panelX + 2, jumpY - 1, panelW - 4, itemH);
+    }
+
+    // Jump icon (yellow triangle, gray if blocked)
+    if (isJumpBlocked) {
+      p.fill(80, 80, 80);
+    } else {
+      p.fill(255, 255, 0);
+    }
+    p.noStroke();
+    p.triangle(panelX + 6, jumpY + 8, panelX + 10, jumpY + 1, panelX + 14, jumpY + 8);
+
+    // Jump label
+    p.textSize(5);
+    p.textAlign(p.LEFT, p.TOP);
+    if (isJumpBlocked) {
+      p.fill(80);
+      p.text("JUMP", panelX + 18, jumpY + 2);
+      p.fill(255, 60, 60);
+      p.text("BLOCKED", panelX + 45, jumpY + 2);
+    } else {
+      p.fill(isJumpSelected ? 255 : 180);
+      p.text("JUMP", panelX + 18, jumpY + 2);
+    }
+
+    // Divider line
+    const divY = jumpY + itemH + 1;
+    p.stroke(255, 255, 100, 80);
+    p.strokeWeight(1);
+    p.line(panelX + 4, divY, panelX + panelW - 4, divY);
+    p.noStroke();
+
+    // Inventory items
+    const invStartY = divY + dividerH;
+    const maxVisible = Math.floor(inventoryH / itemH);
     const scrollOffset = state.inventoryScrollOffset;
 
     for (let i = 0; i < Math.min(inv.length, maxVisible); i++) {
       const dataIdx = i + scrollOffset;
       if (dataIdx >= inv.length) break;
-      const iy = panelY + 4 + i * itemH;
+      const iy = invStartY + i * itemH;
       const isSelected = dataIdx === state.selectedSlotIndex;
 
-      // Highlight selected row
       if (isSelected) {
         p.fill(255, 255, 100, 40);
         p.noStroke();
         p.rect(panelX + 2, iy - 1, panelW - 4, itemH);
       }
 
-      // Icon
       drawPowerUpIcon(p, panelX + 4, iy + 1, 7, inv[dataIdx]);
 
-      // Label
       p.textSize(5);
       p.textAlign(p.LEFT, p.TOP);
       p.fill(isSelected ? 255 : 180);
@@ -655,9 +695,9 @@ export function drawInventoryHUD(p: p5, state: GameState): void {
       p.fill(255, 255, 100);
       p.textAlign(p.CENTER, p.TOP);
       p.textSize(4);
-      p.text("^", panelX + panelW / 2, panelY + 1);
+      p.text("^", panelX + panelW / 2, invStartY - 2);
     }
-    if (scrollOffset + maxVisible < inv.length) {
+    if (maxVisible > 0 && scrollOffset + maxVisible < inv.length) {
       p.fill(255, 255, 100);
       p.textAlign(p.CENTER, p.BOTTOM);
       p.textSize(4);
@@ -667,6 +707,18 @@ export function drawInventoryHUD(p: p5, state: GameState): void {
     // Hint text for focused item
     if (state.selectedPowerUp) {
       const hint = powerUpHint(state.selectedPowerUp);
+      p.fill(200, 200, 150);
+      p.noStroke();
+      p.textSize(4);
+      if (state.currentPlayer === 1) {
+        p.textAlign(p.LEFT, p.TOP);
+        p.text(hint, panelX + 2, panelY + panelH + 3);
+      } else {
+        p.textAlign(p.RIGHT, p.TOP);
+        p.text(hint, panelX + panelW - 2, panelY + panelH + 3);
+      }
+    } else if (isJumpSelected) {
+      const hint = isJumpBlocked ? "Poison/ice blocks jumping." : "Leap to next building.";
       p.fill(200, 200, 150);
       p.noStroke();
       p.textSize(4);

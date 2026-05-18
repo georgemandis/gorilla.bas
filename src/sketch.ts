@@ -439,28 +439,39 @@ const sketch = (p: p5) => {
 
     if (state.inventoryOpen) {
       // Inventory HUD is open — dpad up/down navigates, B confirms, A cancels
+      // selectedSlotIndex: -1 = jump (virtual top item), 0+ = inventory slots
       const inv = state.inventory[playerIdx];
       const curUp = input.dpadUp;
       const curDown = input.dpadDown;
 
-      // Max visible items in the HUD panel (must match ui.ts panel math)
-      const maxVisible = Math.floor((Math.min(inv.length * 12 + 8, 120) - 8) / 12);
-
-      if (curUp && !prevDpadUp && inv.length > 0) {
-        state.selectedSlotIndex = Math.max(0, state.selectedSlotIndex - 1);
-        state.selectedPowerUp = inv[state.selectedSlotIndex];
-        // Scroll up only when selection goes above visible window
-        if (state.selectedSlotIndex < state.inventoryScrollOffset) {
-          state.inventoryScrollOffset = state.selectedSlotIndex;
+      if (curUp && !prevDpadUp) {
+        if (state.selectedSlotIndex > 0) {
+          state.selectedSlotIndex--;
+          state.selectedPowerUp = inv[state.selectedSlotIndex];
+          if (state.selectedSlotIndex < state.inventoryScrollOffset) {
+            state.inventoryScrollOffset = state.selectedSlotIndex;
+          }
+        } else if (state.selectedSlotIndex === 0) {
+          state.selectedSlotIndex = -1;
+          state.selectedPowerUp = null;
         }
         playSound("powerup_select");
       }
-      if (curDown && !prevDpadDown && inv.length > 0) {
-        state.selectedSlotIndex = Math.min(inv.length - 1, state.selectedSlotIndex + 1);
-        state.selectedPowerUp = inv[state.selectedSlotIndex];
-        // Scroll down only when selection goes below visible window
-        if (state.selectedSlotIndex >= state.inventoryScrollOffset + maxVisible) {
-          state.inventoryScrollOffset = state.selectedSlotIndex - maxVisible + 1;
+      if (curDown && !prevDpadDown) {
+        if (state.selectedSlotIndex === -1 && inv.length > 0) {
+          state.selectedSlotIndex = 0;
+          state.selectedPowerUp = inv[0];
+        } else if (state.selectedSlotIndex >= 0 && state.selectedSlotIndex < inv.length - 1) {
+          state.selectedSlotIndex++;
+          state.selectedPowerUp = inv[state.selectedSlotIndex];
+          const itemH = 12;
+          const dividerH = 4;
+          const jumpRowH = itemH;
+          const inventoryH = inv.length > 0 ? Math.min(inv.length * itemH, 120 - jumpRowH - dividerH) : 0;
+          const maxVisible = Math.floor(inventoryH / itemH);
+          if (maxVisible > 0 && state.selectedSlotIndex >= state.inventoryScrollOffset + maxVisible) {
+            state.inventoryScrollOffset = state.selectedSlotIndex - maxVisible + 1;
+          }
         }
         playSound("powerup_select");
       }
@@ -469,9 +480,21 @@ const sketch = (p: p5) => {
 
       // B confirms selection and closes
       if (input.b && !prevB) {
-        state.inventoryOpen = false;
-    state.inventoryScrollOffset = 0;
-        playSound("powerup_select");
+        if (state.selectedSlotIndex === -1) {
+          const isBlocked = state.poisonTurns[playerIdx] > 0 || state.iceTurns[playerIdx] > 0;
+          if (isBlocked) {
+            playSound("crate_destroy");
+          } else {
+            state.selectedPowerUp = "jump";
+            state.inventoryOpen = false;
+            state.inventoryScrollOffset = 0;
+            playSound("powerup_select");
+          }
+        } else {
+          state.inventoryOpen = false;
+          state.inventoryScrollOffset = 0;
+          playSound("powerup_select");
+        }
       }
 
       // A cancels — deselect and close
@@ -479,21 +502,15 @@ const sketch = (p: p5) => {
         state.selectedPowerUp = null;
         state.selectedSlotIndex = -1;
         state.inventoryOpen = false;
-    state.inventoryScrollOffset = 0;
+        state.inventoryScrollOffset = 0;
       }
     } else {
-      // B opens inventory (if player has items)
+      // B opens inventory HUD (always available — jump is permanent)
       if (input.b && !prevB) {
-        const inv = state.inventory[playerIdx];
-        if (inv.length > 0) {
-          state.inventoryOpen = true;
-          // Select first item if nothing selected
-          if (state.selectedSlotIndex === -1) {
-            state.selectedSlotIndex = 0;
-            state.selectedPowerUp = inv[0];
-          }
-          playSound("powerup_select");
-        }
+        state.inventoryOpen = true;
+        state.selectedSlotIndex = -1; // Start at jump
+        state.selectedPowerUp = null;
+        playSound("powerup_select");
       }
 
       // A button pressed — launch (edge detection)
