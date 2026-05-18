@@ -54,6 +54,7 @@ export function checkCollision(
 
   if (!options?.skipBuildings) {
     for (const building of buildings) {
+      if (building.height <= 0) continue;
       if (
         x >= building.x &&
         x <= building.x + building.width &&
