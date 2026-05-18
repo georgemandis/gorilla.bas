@@ -563,6 +563,22 @@ export function drawConfigScreen(
   p.text("Press START to play", WIDTH / 2, HEIGHT - 30);
 }
 
+export function drawFloatingText(p: p5, ft: { x: number; y: number; label: string; color: "red" | "green"; timer: number }): void {
+  const progress = 1 - ft.timer / 60;
+  const alpha = Math.floor(255 * (1 - progress));
+  const yOffset = progress * 20;
+
+  p.textSize(6);
+  p.textAlign(p.CENTER, p.CENTER);
+  p.noStroke();
+  if (ft.color === "red") {
+    p.fill(255, 0, 0, alpha);
+  } else {
+    p.fill(0, 255, 0, alpha);
+  }
+  p.text(ft.label, ft.x, ft.y - yOffset);
+}
+
 export function drawInventoryHUD(p: p5, state: GameState): void {
   const iconSize = 5;
   const spacing = 7;

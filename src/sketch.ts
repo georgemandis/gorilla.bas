@@ -29,7 +29,7 @@ import { drawGorilla } from "./gorilla";
 import {
   drawScores, drawAngleIndicator, drawActivePlayerIndicator, drawPowerMeter,
   drawSun, drawEvilSun, drawExplosion, drawTitleScreen, drawConfigScreen,
-  drawGameOver, drawInventoryHUD, drawPortals, drawHP,
+  drawGameOver, drawInventoryHUD, drawPortals, drawHP, drawFloatingText,
 } from "./ui";
 import { randomName } from "./names";
 import { getCostume } from "./costumes";
@@ -663,6 +663,10 @@ const sketch = (p: p5) => {
       if (gCenterX >= b.x && gCenterX <= b.x + b.width) return i;
     }
     return -1;
+  }
+
+  function setFloatingText(x: number, y: number, label: string, color: "red" | "green") {
+    state.floatingText = { x, y, label, color, timer: 60 };
   }
 
   function findJumpTarget(currentIdx: number, goRight: boolean): number {
@@ -1908,6 +1912,17 @@ const sketch = (p: p5) => {
     if (state.crate) {
       updateCrateFall(state.crate);
       drawCrate(p, state.crate);
+    }
+
+    // Update and draw floating text
+    if (state.floatingText) {
+      state.floatingText.timer--;
+      if (state.floatingText.timer <= 0) {
+        state.floatingText = null;
+      }
+    }
+    if (state.floatingText) {
+      drawFloatingText(p, state.floatingText);
     }
 
     // Determine loser index during victory phase
