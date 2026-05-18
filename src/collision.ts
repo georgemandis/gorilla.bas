@@ -15,7 +15,8 @@ export function checkCollision(
   t: number,
   buildings: Building[],
   gorillas: [Gorilla, Gorilla],
-  crate?: PowerUpCrate | null
+  crate?: PowerUpCrate | null,
+  options?: { skipBuildings?: boolean; gorillaHitboxMult?: number }
 ): CollisionResult {
   if (t >= MAX_FLIGHT_T) {
     return { type: "miss" };
@@ -29,12 +30,15 @@ export function checkCollision(
     return { type: "none" };
   }
 
+  const hitMult = options?.gorillaHitboxMult ?? 1;
   for (const gorilla of gorillas) {
+    const expandX = (gorilla.width * (hitMult - 1)) / 2;
+    const expandY = (gorilla.height * (hitMult - 1)) / 2;
     if (
-      x >= gorilla.x &&
-      x <= gorilla.x + gorilla.width &&
-      y >= gorilla.y &&
-      y <= gorilla.y + gorilla.height
+      x >= gorilla.x - expandX &&
+      x <= gorilla.x + gorilla.width + expandX &&
+      y >= gorilla.y - expandY &&
+      y <= gorilla.y + gorilla.height + expandY
     ) {
       return { type: "gorilla", gorilla };
     }
@@ -48,25 +52,27 @@ export function checkCollision(
     }
   }
 
-  for (const building of buildings) {
-    if (
-      x >= building.x &&
-      x <= building.x + building.width &&
-      y >= building.y &&
-      y <= building.y + building.height
-    ) {
-      // Check if point falls inside an existing damage hole (pass-through)
-      let inDamage = false;
-      for (const hole of building.damage) {
-        const dx = x - hole.cx;
-        const dy = y - hole.cy;
-        if (dx * dx + dy * dy <= hole.radius * hole.radius) {
-          inDamage = true;
-          break;
+  if (!options?.skipBuildings) {
+    for (const building of buildings) {
+      if (
+        x >= building.x &&
+        x <= building.x + building.width &&
+        y >= building.y &&
+        y <= building.y + building.height
+      ) {
+        // Check if point falls inside an existing damage hole (pass-through)
+        let inDamage = false;
+        for (const hole of building.damage) {
+          const dx = x - hole.cx;
+          const dy = y - hole.cy;
+          if (dx * dx + dy * dy <= hole.radius * hole.radius) {
+            inDamage = true;
+            break;
+          }
         }
+        if (inDamage) continue;
+        return { type: "building", building };
       }
-      if (inDamage) continue;
-      return { type: "building", building };
     }
   }
 
