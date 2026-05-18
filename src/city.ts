@@ -5,6 +5,7 @@ import {
   MIN_BUILDING_WIDTH,
   MAX_BUILDING_WIDTH,
   CITY_THEME_COLORS,
+  GORILLA_WIDTH,
   GORILLA_HEIGHT,
   EXPLOSION_RADIUS,
 } from "./config";
@@ -150,6 +151,41 @@ export function generateWind(): number {
     }
   }
   return wind;
+}
+
+export function checkGorillaGroundSupport(
+  gorillaX: number,
+  gorillaY: number,
+  buildings: Building[]
+): boolean {
+  if (gorillaY >= BOTTOM_LINE - GORILLA_HEIGHT) return true;
+  const centerX = gorillaX + GORILLA_WIDTH / 2;
+  let building: Building | null = null;
+  for (const b of buildings) {
+    if (centerX >= b.x && centerX <= b.x + b.width) {
+      building = b;
+      break;
+    }
+  }
+  if (!building) return true;
+  if (building.height <= 0) return false;
+  const sampleCount = 5;
+  let solidCount = 0;
+  for (let i = 0; i < sampleCount; i++) {
+    const sx = gorillaX + (GORILLA_WIDTH * i) / (sampleCount - 1);
+    if (sx < building.x || sx > building.x + building.width) continue;
+    let damaged = false;
+    for (const hole of building.damage) {
+      const dx = sx - hole.cx;
+      const dy = building.y - hole.cy;
+      if (dx * dx + dy * dy <= hole.radius * hole.radius) {
+        damaged = true;
+        break;
+      }
+    }
+    if (!damaged) solidCount++;
+  }
+  return solidCount / sampleCount >= 0.3;
 }
 
 export function reshuffleBuildings(buildings: Building[], cityTheme: CityTheme, timeOfDay: TimeOfDay): void {

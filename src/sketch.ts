@@ -15,9 +15,10 @@ import {
   POISON_TURNS, POISON_POWER_CAP, ICE_TURNS, MIRROR_TURNS, GRAVITY_TURNS,
   ALL_POWERUP_TYPES, GIANT_POWER_MULT, GIANT_HITBOX_MULT, HP_OPTIONS,
   EARTHQUAKE_SHAKE_MS,
+  FALLING_SPEED,
 } from "./config";
 import { getPlayerInput, getSystemInput } from "./input";
-import { generateCityscape, placeGorillas, generateWind, randomGorillaPlacements, reshuffleBuildings } from "./city";
+import { generateCityscape, placeGorillas, generateWind, randomGorillaPlacements, reshuffleBuildings, checkGorillaGroundSupport } from "./city";
 import { createProjectile, getProjectilePositionWithGravity, advanceProjectile } from "./physics";
 import { checkCollision } from "./collision";
 import { drawGorilla } from "./gorilla";
@@ -76,6 +77,8 @@ function createInitialState(): GameState {
     gravityTurns: [0, 0],
     shield: [false, false],
     earthquakeTimer: 0,
+    fallingGorillas: [null, null],
+    jumpAnim: null,
   };
 }
 
@@ -180,6 +183,8 @@ const sketch = (p: p5) => {
     const p1Input = getPlayerInput(1);
     const p2Input = getPlayerInput(2);
     const activeInput = state.currentPlayer === 1 ? p1Input : p2Input;
+
+    updateFallingGorillas();
 
     switch (state.phase) {
       case "title":
@@ -388,6 +393,8 @@ const sketch = (p: p5) => {
     state.hp = [state.maxHP, state.maxHP];
     state.shield = [false, false];
     state.earthquakeTimer = 0;
+    state.fallingGorillas = [null, null];
+    state.jumpAnim = null;
     // iceTurns, mirrorTurns, gravityTurns persist across rounds (like poisonTurns)
     // TODO: remove after testing — give both players all power-ups each round
     state.inventory[0] = [...ALL_POWERUP_TYPES];
@@ -567,6 +574,32 @@ const sketch = (p: p5) => {
     playSound("earthquake_rumble");
   }
 
+  function checkAndApplyFalling() {
+    for (let i = 0; i < 2; i++) {
+      if (state.fallingGorillas[i]) continue;
+      const g = state.gorillas[i];
+      if (!checkGorillaGroundSupport(g.x, g.y, state.buildings)) {
+        state.fallingGorillas[i] = { targetY: BOTTOM_LINE - GORILLA_HEIGHT };
+      }
+    }
+  }
+
+  function updateFallingGorillas() {
+    for (let i = 0; i < 2; i++) {
+      const fall = state.fallingGorillas[i];
+      if (!fall) continue;
+      state.gorillas[i].y += FALLING_SPEED;
+      if (state.gorillas[i].y >= fall.targetY) {
+        state.gorillas[i].y = fall.targetY;
+        state.fallingGorillas[i] = null;
+      }
+    }
+  }
+
+  function isFallingComplete(): boolean {
+    return state.fallingGorillas[0] === null && state.fallingGorillas[1] === null;
+  }
+
   function updateFlight() {
     // Earthquake shake timer — wait for shake to finish before resolving
     if (state.earthquakeTimer > 0) {
@@ -611,10 +644,7 @@ const sketch = (p: p5) => {
     if (state.projectile.powerUpType === "homing") {
       const opponentIdx = state.currentPlayer === 1 ? 1 : 0;
       const targetX = state.gorillas[opponentIdx].x + GORILLA_WIDTH / 2;
-      const homingResult = applyHomingNudge(state.projectile, pos, targetX, state.wind, effectiveGravity);
-      if (homingResult) {
-        state.projectile = homingResult;
-      }
+      applyHomingNudge(state.projectile, pos, targetX, state.wind, effectiveGravity);
     }
 
     // Check if banana enters a portal (only for non-portal bananas when both portals exist)
@@ -970,7 +1000,10 @@ const sketch = (p: p5) => {
 
     // All resolved — end turn
     if (state.activeSubProjectiles.length === 0) {
-      resolveThrowEnd();
+      checkAndApplyFalling();
+      if (isFallingComplete()) {
+        resolveThrowEnd();
+      }
     }
   }
 
@@ -1019,11 +1052,17 @@ const sketch = (p: p5) => {
         } else {
           // Gorilla survived — continue round
           playSound("hit");
-          resolveThrowEnd();
+          checkAndApplyFalling();
+          if (isFallingComplete()) {
+            resolveThrowEnd();
+          }
         }
       } else {
-        // Building hit — resolve throw
-        resolveThrowEnd();
+        // Building hit — check if gorillas need to fall
+        checkAndApplyFalling();
+        if (isFallingComplete()) {
+          resolveThrowEnd();
+        }
       }
     }
   }
@@ -1367,7 +1406,7 @@ const sketch = (p: p5) => {
     // Subtitle
     p.fill(180);
     p.textSize(6);
-    p.text("No points awarded.", WIDTH / 2, HEIGHT / 2 + 20);
+    p.text("No points awarded.", WIDTH / 2, HEIGHT / 2 + 20);    
   }
 
   function updateGameOver(sys: ReturnType<typeof getSystemInput>) {
