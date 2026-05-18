@@ -230,23 +230,16 @@ export function insertBuilding(
   return { building, insertIdx };
 }
 
-export function reshuffleBuildings(buildings: Building[], cityTheme: CityTheme, timeOfDay: TimeOfDay): void {
-  const maxBuildingTop = 40 + GORILLA_HEIGHT;
+export function reshuffleBuildings(buildings: Building[], _cityTheme: CityTheme, timeOfDay: TimeOfDay): void {
+  const litChance = timeOfDay === "night" ? 0.7 : 0.6;
 
   for (const b of buildings) {
-    // Randomize height while preserving x and width
-    let newHeight = Math.floor(Math.random() * 120) + 40;
-    if (BOTTOM_LINE - newHeight < maxBuildingTop) newHeight = BOTTOM_LINE - maxBuildingTop;
-    if (newHeight < 20) newHeight = 20;
-
-    b.height = newHeight;
-    b.y = BOTTOM_LINE - newHeight;
-    b.damage = []; // clear damage on reshuffled buildings
-
-    // Regenerate windows
-    const colors = CITY_THEME_COLORS[cityTheme];
-    b.color = colors[Math.floor(Math.random() * colors.length)];
-    const litChance = timeOfDay === "night" ? 0.7 : 0.6;
+    if (b.height <= 0) continue; // skip demolished
+    // Drop 1-2 floors (10-20px) randomly
+    const drop = 10 + Math.floor(Math.random() * 11); // 10..20
+    b.height = Math.max(20, b.height - drop);
+    b.y = BOTTOM_LINE - b.height;
+    // Regenerate windows for new dimensions
     b.windows = generateWindows(b.x, b.y, b.width, b.height, litChance);
   }
 }

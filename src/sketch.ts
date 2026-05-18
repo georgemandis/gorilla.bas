@@ -618,16 +618,13 @@ const sketch = (p: p5) => {
 
   function triggerEarthquake() {
     reshuffleBuildings(state.buildings, state.cityTheme, state.timeOfDay);
-    // Reposition gorillas on their (now reshuffled) buildings
+    // Reposition gorillas on their (now shorter) buildings
     for (let i = 0; i < 2; i++) {
       const bIdx = findBuildingUnderGorilla(state.gorillas[i], state.buildings);
       if (bIdx >= 0) {
         state.gorillas[i].y = state.buildings[bIdx].y - GORILLA_HEIGHT;
       }
     }
-    // Clear portals and crate (positions invalid after reshuffle)
-    state.portals = [null, null];
-    state.crate = null;
     state.activeSubProjectiles = [];
     state.earthquakeTimer = p.millis();
     playSound("earthquake_rumble");
