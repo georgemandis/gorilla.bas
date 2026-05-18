@@ -14,9 +14,10 @@ import {
   SKY_COLORS, GROUND_COLORS,
   POISON_TURNS, POISON_POWER_CAP, ICE_TURNS, MIRROR_TURNS, GRAVITY_TURNS,
   ALL_POWERUP_TYPES, GIANT_POWER_MULT, GIANT_HITBOX_MULT,
+  EARTHQUAKE_SHAKE_MS,
 } from "./config";
 import { getPlayerInput, getSystemInput } from "./input";
-import { generateCityscape, placeGorillas, generateWind, randomGorillaPlacements } from "./city";
+import { generateCityscape, placeGorillas, generateWind, randomGorillaPlacements, reshuffleBuildings } from "./city";
 import { createProjectile, getProjectilePositionWithGravity, advanceProjectile } from "./physics";
 import { checkCollision } from "./collision";
 import { drawGorilla } from "./gorilla";
@@ -220,12 +221,20 @@ const sketch = (p: p5) => {
       case "flight":
         if (teleportAnimTargets) {
           updateTeleportAnim(p);
-        } else if (state.projectile) {
+        } else if (state.projectile || state.earthquakeTimer > 0) {
           updateFlight();
         } else if (state.activeSubProjectiles.length > 0) {
           updateSubProjectiles();
         }
         updateTaunts(p1Input, p2Input);
+        // Earthquake screen shake visual
+        if (state.earthquakeTimer > 0) {
+          const shakeElapsed = p.millis() - state.earthquakeTimer;
+          if (shakeElapsed < EARTHQUAKE_SHAKE_MS) {
+            const intensity = 3 * (1 - shakeElapsed / EARTHQUAKE_SHAKE_MS);
+            p.translate((Math.random() - 0.5) * intensity * 2, (Math.random() - 0.5) * intensity * 2);
+          }
+        }
         drawGameplay(p);
         if (state.projectile) {
           drawBanana(p);
@@ -534,7 +543,33 @@ const sketch = (p: p5) => {
     return -1;
   }
 
+  function triggerEarthquake() {
+    reshuffleBuildings(state.buildings, state.cityTheme, state.timeOfDay);
+    // Reposition gorillas on their (now reshuffled) buildings
+    for (let i = 0; i < 2; i++) {
+      const bIdx = findBuildingUnderGorilla(state.gorillas[i], state.buildings);
+      if (bIdx >= 0) {
+        state.gorillas[i].y = state.buildings[bIdx].y - GORILLA_HEIGHT;
+      }
+    }
+    // Clear portals and crate (positions invalid after reshuffle)
+    state.portals = [null, null];
+    state.crate = null;
+    state.activeSubProjectiles = [];
+    state.earthquakeTimer = p.millis();
+    playSound("earthquake_rumble");
+  }
+
   function updateFlight() {
+    // Earthquake shake timer — wait for shake to finish before resolving
+    if (state.earthquakeTimer > 0) {
+      if (p.millis() - state.earthquakeTimer >= EARTHQUAKE_SHAKE_MS) {
+        state.earthquakeTimer = 0;
+        resolveThrowEnd();
+      }
+      return; // don't process flight during shake
+    }
+
     if (!state.projectile) return;
 
     advanceProjectile(state.projectile);
@@ -632,6 +667,12 @@ const sketch = (p: p5) => {
         state.sunShocked = true;
         break;
       case "miss": {
+        // Earthquake triggers on any miss
+        if (state.projectile!.powerUpType === "earthquake") {
+          state.projectile = null;
+          triggerEarthquake();
+          return;
+        }
         const pos2 = getProjectilePositionWithGravity(state.projectile!, state.wind, effectiveGravity);
         const isEdgeMiss = pos2.x < 0 || pos2.x > WIDTH || pos2.y < 0;
         const isGroundMiss = pos2.y > BOTTOM_LINE;
@@ -705,6 +746,12 @@ const sketch = (p: p5) => {
             return;
           }
         }
+        // Earthquake: reshuffle buildings, no damage
+        if (projType === "earthquake") {
+          state.projectile = null;
+          triggerEarthquake();
+          break;
+        }
         if (state.projectile?.powerUpType === "confetti") {
           explosionX = pos.x;
           explosionY = pos.y;
@@ -770,6 +817,11 @@ const sketch = (p: p5) => {
           state.projectile = null;
           playSound("shield_break");
           resolveThrowEnd();
+          break;
+        }
+        if (state.projectile?.powerUpType === "earthquake") {
+          state.projectile = null;
+          triggerEarthquake();
           break;
         }
         if (state.projectile?.powerUpType === "confetti") {
@@ -1725,6 +1777,9 @@ const sketch = (p: p5) => {
       p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
     } else if (state.projectile.powerUpType === "rubber") {
       p.fill(0, 220, 255);
+      p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+    } else if (state.projectile.powerUpType === "earthquake") {
+      p.fill(139, 90, 43);
       p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
     } else {
       p.fill(255, 255, 0);
