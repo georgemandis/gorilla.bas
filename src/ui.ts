@@ -68,21 +68,37 @@ export function drawAngleIndicator(p: p5, state: GameState): void {
     case "ricochet":
       p.fill(0, 200, 255);
       p.arc(0, 0, 8, 6, 0, Math.PI);
+      p.stroke(255, 255, 255, 180);
+      p.strokeWeight(1);
+      p.line(-2, -2, 0, -4);
+      p.line(0, -4, 2, -2);
+      p.noStroke();
       break;
     case "wrap_around":
       p.fill(200, 0, 255);
       p.arc(0, 0, 8, 6, 0, Math.PI);
+      p.stroke(255, 255, 255, 150);
+      p.strokeWeight(1);
+      p.line(-4, 0, -3, -2);
+      p.line(4, 0, 3, -2);
+      p.noStroke();
       break;
     case "cluster_bomb":
       p.fill(255, 100, 0);
       p.arc(0, 0, 8, 6, 0, Math.PI);
       p.fill(255, 255, 0);
-      p.circle(-3, -3, 2);
-      p.circle(3, -3, 2);
+      p.circle(-2, -2, 2);
+      p.circle(2, -2, 2);
+      p.circle(0, -3, 2);
       break;
     case "teleportation":
       p.fill(0, 255, 200);
       p.arc(0, 0, 8, 6, 0, Math.PI);
+      p.stroke(255, 255, 255, 200);
+      p.strokeWeight(1);
+      p.line(-1, -3, 1, -1);
+      p.line(1, -1, -1, 1);
+      p.noStroke();
       break;
     case "portal":
       p.fill(255, 140, 0);
@@ -93,55 +109,125 @@ export function drawAngleIndicator(p: p5, state: GameState): void {
       p.circle(0, 0, 10);
       p.noStroke();
       break;
+    case "confetti":
+      p.fill(255, 100, 200);
+      p.arc(0, 0, 8, 6, 0, Math.PI);
+      p.fill(255, 255, 0);
+      p.circle(-2, -2, 1.5);
+      p.fill(0, 255, 200);
+      p.circle(2, -1, 1.5);
+      p.fill(100, 100, 255);
+      p.circle(0, -3, 1.5);
+      break;
     case "poison":
       p.fill(0, 200, 0);
       p.arc(0, 0, 8, 6, 0, Math.PI);
+      p.fill(0, 255, 0, 180);
+      p.circle(0, 2, 2);
       break;
     case "ice":
       p.fill(100, 200, 255);
       p.arc(0, 0, 8, 6, 0, Math.PI);
+      p.stroke(255, 255, 255, 200);
+      p.strokeWeight(1);
+      p.line(0, -3, 0, -1);
+      p.line(-1, -2, 1, -2);
+      p.noStroke();
       break;
     case "mirror":
       p.fill(180, 0, 255);
       p.arc(0, 0, 8, 6, 0, Math.PI);
+      p.stroke(255, 255, 255, 180);
+      p.strokeWeight(1);
+      p.line(-2, -1, 2, -3);
+      p.noStroke();
       break;
     case "gravity_flip":
       p.fill(255, 180, 0);
       p.arc(0, 0, 8, 6, 0, Math.PI);
+      p.noFill();
+      p.stroke(255, 255, 255, 100);
+      p.strokeWeight(1);
+      p.arc(0, 0, 6, 4, 0, Math.PI * 1.5);
+      p.noStroke();
       break;
     case "shield":
       p.fill(0, 255, 255);
       p.arc(0, 0, 8, 6, 0, Math.PI);
+      p.noFill();
+      p.stroke(255, 255, 255, 150);
+      p.strokeWeight(1);
+      p.arc(0, -1, 6, 6, Math.PI + 0.5, -0.5);
+      p.noStroke();
       break;
     case "rubber":
       p.fill(0, 220, 255);
       p.arc(0, 0, 8, 6, 0, Math.PI);
+      p.fill(255);
+      p.circle(0, 0, 2);
       break;
     case "homing":
       p.fill(255, 80, 50);
       p.arc(0, 0, 8, 6, 0, Math.PI);
+      p.stroke(255, 255, 255, 180);
+      p.strokeWeight(1);
+      p.line(0, -3, 0, 1);
+      p.line(-2, -1, 2, -1);
+      p.noStroke();
       break;
     case "ghost":
       p.fill(255, 255, 255, 150);
       p.arc(0, 0, 8, 6, 0, Math.PI);
       break;
     case "giant":
-      p.fill(255, 255, 0);
+      p.fill(255, 220, 0);
       p.arc(0, 0, 12, 9, 0, Math.PI);
+      p.stroke(200, 150, 0);
+      p.strokeWeight(1);
+      p.line(-3, 0, 3, 0);
+      p.noStroke();
       break;
     case "boomerang":
       p.fill(255, 200, 100);
-      p.arc(0, 0, 8, 6, 0, Math.PI);
+      p.arc(0, 0, 4, 6, 0, Math.PI);
+      p.arc(0, 0, 4, 6, Math.PI, Math.PI * 2);
       break;
     case "drunk":
       p.fill(200, 100, 255);
       p.arc(0, 0, 8, 6, 0, Math.PI);
+      p.stroke(255, 255, 255, 120);
+      p.strokeWeight(1);
+      p.arc(-2, -2, 3, 3, 0, Math.PI);
+      p.noStroke();
       break;
     case "earthquake":
       p.fill(139, 90, 43);
       p.arc(0, 0, 8, 6, 0, Math.PI);
+      p.stroke(80, 50, 20);
+      p.strokeWeight(1);
+      p.line(-2, 0, 0, -2);
+      p.line(0, -2, 2, 0);
+      p.noStroke();
       break;
-    case "confetti":
+    case "demolition":
+      p.fill(40, 40, 40);
+      p.arc(0, 0, 8, 6, 0, Math.PI);
+      p.fill(80, 80, 80);
+      p.circle(0, 1, 3);
+      break;
+    case "construction":
+      p.fill(50, 200, 50);
+      p.arc(0, 0, 8, 6, 0, Math.PI);
+      p.stroke(255, 255, 255, 200);
+      p.strokeWeight(1);
+      p.line(0, -3, 0, -1);
+      p.line(-1, -2, 1, -2);
+      p.noStroke();
+      break;
+    case "jump":
+      p.fill(255, 255, 0);
+      p.triangle(0, -4, -3, 2, 3, 2);
+      break;
     case null:
     default:
       p.fill(255, 255, 0);

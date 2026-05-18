@@ -2057,6 +2057,53 @@ const sketch = (p: p5) => {
     p.noStroke();
 
     switch (state.projectile.powerUpType) {
+      case "big_banana":
+        p.fill(255, 255, 0);
+        p.arc(0, 0, 12 * scale, 9 * scale, 0, Math.PI);
+        break;
+      case "two_bananas":
+        p.fill(255, 255, 0);
+        p.arc(-3 * scale, 0, 6 * scale, 4 * scale, 0, Math.PI);
+        p.arc(3 * scale, 0, 6 * scale, 4 * scale, 0, Math.PI);
+        break;
+      case "ricochet":
+        p.fill(0, 200, 255);
+        p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        // Bounce arrow
+        p.stroke(255, 255, 255, 180);
+        p.strokeWeight(1);
+        p.line(-2 * scale, -2 * scale, 0, -4 * scale);
+        p.line(0, -4 * scale, 2 * scale, -2 * scale);
+        p.noStroke();
+        break;
+      case "wrap_around":
+        p.fill(200, 0, 255);
+        p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        // Wrap arrows
+        p.stroke(255, 255, 255, 150);
+        p.strokeWeight(1);
+        p.line(-4 * scale, 0, -3 * scale, -2 * scale);
+        p.line(4 * scale, 0, 3 * scale, -2 * scale);
+        p.noStroke();
+        break;
+      case "cluster_bomb":
+        p.fill(255, 100, 0);
+        p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        p.fill(255, 255, 0);
+        p.circle(-2 * scale, -2 * scale, 2 * scale);
+        p.circle(2 * scale, -2 * scale, 2 * scale);
+        p.circle(0, -3 * scale, 2 * scale);
+        break;
+      case "teleportation":
+        p.fill(0, 255, 200);
+        p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        // Zap lines
+        p.stroke(255, 255, 255, 200);
+        p.strokeWeight(1);
+        p.line(-1 * scale, -3 * scale, 1 * scale, -1 * scale);
+        p.line(1 * scale, -1 * scale, -1 * scale, 1 * scale);
+        p.noStroke();
+        break;
       case "portal": {
         const isSecond = state.portals[0] !== null;
         if (isSecond) {
@@ -2071,47 +2118,42 @@ const sketch = (p: p5) => {
         p.arc(0, 0, 10 * scale, 8 * scale, 0.3, Math.PI - 0.3);
         break;
       }
-      case "ghost": {
-        const flicker = Math.floor(p.millis() / 100) % 6 !== 0;
-        if (flicker) {
-          p.fill(255, 255, 255, 120);
-          p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
-        }
-        break;
-      }
-      case "homing":
-        p.fill(255, 80, 50);
+      case "confetti":
+        p.fill(255, 100, 200);
         p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        // Confetti dots
+        p.fill(255, 255, 0);
+        p.circle(-2 * scale, -2 * scale, 1.5 * scale);
+        p.fill(0, 255, 200);
+        p.circle(2 * scale, -1 * scale, 1.5 * scale);
+        p.fill(100, 100, 255);
+        p.circle(0, -3 * scale, 1.5 * scale);
         break;
-      case "rubber":
-        p.fill(0, 220, 255);
+      case "poison":
+        p.fill(0, 200, 0);
         p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
-        break;
-      case "boomerang":
-        p.fill(255, 200, 100);
-        p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
-        break;
-      case "earthquake":
-        p.fill(139, 90, 43);
-        p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
-        break;
-      case "demolition":
-        p.fill(40, 40, 40);
-        p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
-        p.fill(80, 80, 80);
-        p.circle(0, 1, 3 * scale);
-        break;
-      case "construction":
-        p.fill(50, 200, 50);
-        p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        // Drip
+        p.fill(0, 255, 0, 180);
+        p.circle(0, 2 * scale, 2 * scale);
         break;
       case "ice":
         p.fill(100, 200, 255);
         p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        // Crystal sparkle
+        p.stroke(255, 255, 255, 200);
+        p.strokeWeight(1);
+        p.line(0, -3 * scale, 0, -1 * scale);
+        p.line(-1 * scale, -2 * scale, 1 * scale, -2 * scale);
+        p.noStroke();
         break;
       case "mirror":
         p.fill(180, 0, 255);
         p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        // Mirror reflection line
+        p.stroke(255, 255, 255, 180);
+        p.strokeWeight(1);
+        p.line(-2 * scale, -1 * scale, 2 * scale, -3 * scale);
+        p.noStroke();
         break;
       case "gravity_flip":
         p.fill(255, 180, 0);
@@ -2123,8 +2165,91 @@ const sketch = (p: p5) => {
         p.arc(0, 0, 6 * scale, 4 * scale, 0, Math.PI * 1.5);
         p.noStroke();
         break;
+      case "shield":
+        p.fill(0, 255, 255);
+        p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        // Shield arc
+        p.noFill();
+        p.stroke(255, 255, 255, 150);
+        p.strokeWeight(1);
+        p.arc(0, -1 * scale, 6 * scale, 6 * scale, Math.PI + 0.5, -0.5);
+        p.noStroke();
+        break;
+      case "rubber":
+        p.fill(0, 220, 255);
+        p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        // Inner bounce dot
+        p.fill(255);
+        p.circle(0, 0, 2 * scale);
+        break;
+      case "homing":
+        p.fill(255, 80, 50);
+        p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        // Crosshair
+        p.stroke(255, 255, 255, 180);
+        p.strokeWeight(1);
+        p.line(0, -3 * scale, 0, 1 * scale);
+        p.line(-2 * scale, -1 * scale, 2 * scale, -1 * scale);
+        p.noStroke();
+        break;
+      case "ghost": {
+        const flicker = Math.floor(p.millis() / 100) % 6 !== 0;
+        if (flicker) {
+          p.fill(255, 255, 255, 120);
+          p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        }
+        break;
+      }
+      case "giant":
+        p.fill(255, 220, 0);
+        p.arc(0, 0, 12 * scale, 9 * scale, 0, Math.PI);
+        // Heavy lines
+        p.stroke(200, 150, 0);
+        p.strokeWeight(1);
+        p.line(-3 * scale, 0, 3 * scale, 0);
+        p.noStroke();
+        break;
+      case "boomerang":
+        p.fill(255, 200, 100);
+        p.arc(0, 0, 4 * scale, 6 * scale, 0, Math.PI);
+        p.arc(0, 0, 4 * scale, 6 * scale, Math.PI, Math.PI * 2);
+        break;
+      case "drunk":
+        p.fill(200, 100, 255);
+        p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        // Wobble lines
+        p.stroke(255, 255, 255, 120);
+        p.strokeWeight(1);
+        p.arc(-2 * scale, -2 * scale, 3 * scale, 3 * scale, 0, Math.PI);
+        p.noStroke();
+        break;
+      case "earthquake":
+        p.fill(139, 90, 43);
+        p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        // Crack lines
+        p.stroke(80, 50, 20);
+        p.strokeWeight(1);
+        p.line(-2 * scale, 0, 0, -2 * scale);
+        p.line(0, -2 * scale, 2 * scale, 0);
+        p.noStroke();
+        break;
+      case "demolition":
+        p.fill(40, 40, 40);
+        p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        p.fill(80, 80, 80);
+        p.circle(0, 1, 3 * scale);
+        break;
+      case "construction":
+        p.fill(50, 200, 50);
+        p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        // Plus sign
+        p.stroke(255, 255, 255, 200);
+        p.strokeWeight(1);
+        p.line(0, -3 * scale, 0, -1 * scale);
+        p.line(-1 * scale, -2 * scale, 1 * scale, -2 * scale);
+        p.noStroke();
+        break;
       default:
-        // Normal yellow banana (big_banana, two_bananas, cluster_bomb, confetti, poison, drunk, etc.)
         p.fill(255, 255, 0);
         p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
         break;
