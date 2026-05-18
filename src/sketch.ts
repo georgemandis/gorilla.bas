@@ -1749,41 +1749,68 @@ const sketch = (p: p5) => {
     p.rotate(bananaRotation);
     p.noStroke();
 
-    // Portal banana — draw with portal colors
-    if (state.projectile.powerUpType === "portal") {
-      const isSecond = state.portals[0] !== null;
-      if (isSecond) {
-        p.fill(0, 140, 255); // blue for second portal
-      } else {
-        p.fill(255, 140, 0); // orange for first portal
-      }
-      // Draw a swirly portal-banana shape
-      p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
-      p.stroke(255, 255, 255, 150);
-      p.strokeWeight(1);
-      p.noFill();
-      p.arc(0, 0, 10 * scale, 8 * scale, 0.3, Math.PI - 0.3);
-    } else if (state.projectile.powerUpType === "ghost") {
-      const flicker = Math.floor(p.millis() / 100) % 6 !== 0;
-      if (flicker) {
-        p.fill(255, 255, 255, 120);
+    switch (state.projectile.powerUpType) {
+      case "portal": {
+        const isSecond = state.portals[0] !== null;
+        if (isSecond) {
+          p.fill(0, 140, 255);
+        } else {
+          p.fill(255, 140, 0);
+        }
         p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        p.stroke(255, 255, 255, 150);
+        p.strokeWeight(1);
+        p.noFill();
+        p.arc(0, 0, 10 * scale, 8 * scale, 0.3, Math.PI - 0.3);
+        break;
       }
-    } else if (state.projectile.powerUpType === "homing") {
-      p.fill(255, 80, 50);
-      p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
-    } else if (state.projectile.powerUpType === "boomerang") {
-      p.fill(255, 200, 100);
-      p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
-    } else if (state.projectile.powerUpType === "rubber") {
-      p.fill(0, 220, 255);
-      p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
-    } else if (state.projectile.powerUpType === "earthquake") {
-      p.fill(139, 90, 43);
-      p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
-    } else {
-      p.fill(255, 255, 0);
-      p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+      case "ghost": {
+        const flicker = Math.floor(p.millis() / 100) % 6 !== 0;
+        if (flicker) {
+          p.fill(255, 255, 255, 120);
+          p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        }
+        break;
+      }
+      case "homing":
+        p.fill(255, 80, 50);
+        p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        break;
+      case "rubber":
+        p.fill(0, 220, 255);
+        p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        break;
+      case "boomerang":
+        p.fill(255, 200, 100);
+        p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        break;
+      case "earthquake":
+        p.fill(139, 90, 43);
+        p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        break;
+      case "ice":
+        p.fill(100, 200, 255);
+        p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        break;
+      case "mirror":
+        p.fill(180, 0, 255);
+        p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        break;
+      case "gravity_flip":
+        p.fill(255, 180, 0);
+        p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        // Swirl effect
+        p.noFill();
+        p.stroke(255, 255, 255, 100);
+        p.strokeWeight(1);
+        p.arc(0, 0, 6 * scale, 4 * scale, 0, Math.PI * 1.5);
+        p.noStroke();
+        break;
+      default:
+        // Normal yellow banana (big_banana, two_bananas, cluster_bomb, confetti, poison, drunk, etc.)
+        p.fill(255, 255, 0);
+        p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        break;
     }
     p.pop();
   }
