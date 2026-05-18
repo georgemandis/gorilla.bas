@@ -33,8 +33,13 @@ export function drawAngleIndicator(p: p5, state: GameState): void {
   const centerY = gorilla.y + GORILLA_HEIGHT / 2;
 
   const angleRad = (state.angle * Math.PI) / 180;
-  const endX = centerX + Math.cos(angleRad) * ANGLE_ARROW_LENGTH;
-  const endY = centerY - Math.sin(angleRad) * ANGLE_ARROW_LENGTH;
+  // Mirror debuff: invert the displayed aim arrow horizontally
+  const playerIdx = state.currentPlayer - 1;
+  const effectiveAngle = state.mirrorTurns[playerIdx] > 0
+    ? Math.PI - angleRad  // mirror horizontally
+    : angleRad;
+  const endX = centerX + Math.cos(effectiveAngle) * ANGLE_ARROW_LENGTH;
+  const endY = centerY - Math.sin(effectiveAngle) * ANGLE_ARROW_LENGTH;
 
   // Faint halo around gorilla
   p.noFill();
@@ -47,7 +52,7 @@ export function drawAngleIndicator(p: p5, state: GameState): void {
   const scale = 1 + pulse * 0.3;
   p.push();
   p.translate(endX, endY);
-  p.rotate(-angleRad);
+  p.rotate(-effectiveAngle);
   p.scale(scale);
   p.noStroke();
   switch (state.selectedPowerUp) {
@@ -90,6 +95,50 @@ export function drawAngleIndicator(p: p5, state: GameState): void {
       break;
     case "poison":
       p.fill(0, 200, 0);
+      p.arc(0, 0, 8, 6, 0, Math.PI);
+      break;
+    case "ice":
+      p.fill(100, 200, 255);
+      p.arc(0, 0, 8, 6, 0, Math.PI);
+      break;
+    case "mirror":
+      p.fill(180, 0, 255);
+      p.arc(0, 0, 8, 6, 0, Math.PI);
+      break;
+    case "gravity_flip":
+      p.fill(255, 180, 0);
+      p.arc(0, 0, 8, 6, 0, Math.PI);
+      break;
+    case "shield":
+      p.fill(0, 255, 255);
+      p.arc(0, 0, 8, 6, 0, Math.PI);
+      break;
+    case "rubber":
+      p.fill(0, 220, 255);
+      p.arc(0, 0, 8, 6, 0, Math.PI);
+      break;
+    case "homing":
+      p.fill(255, 80, 50);
+      p.arc(0, 0, 8, 6, 0, Math.PI);
+      break;
+    case "ghost":
+      p.fill(255, 255, 255, 150);
+      p.arc(0, 0, 8, 6, 0, Math.PI);
+      break;
+    case "giant":
+      p.fill(255, 255, 0);
+      p.arc(0, 0, 12, 9, 0, Math.PI);
+      break;
+    case "boomerang":
+      p.fill(255, 200, 100);
+      p.arc(0, 0, 8, 6, 0, Math.PI);
+      break;
+    case "drunk":
+      p.fill(200, 100, 255);
+      p.arc(0, 0, 8, 6, 0, Math.PI);
+      break;
+    case "earthquake":
+      p.fill(139, 90, 43);
       p.arc(0, 0, 8, 6, 0, Math.PI);
       break;
     case "confetti":
@@ -472,6 +521,17 @@ function powerUpDisplayName(type: PowerUpType): string {
     case "portal": return "PORTAL";
     case "confetti": return "CONFETTI";
     case "poison": return "POISON";
+    case "ice": return "ICE";
+    case "mirror": return "MIRROR";
+    case "gravity_flip": return "GRAVITY";
+    case "shield": return "SHIELD";
+    case "rubber": return "RUBBER";
+    case "homing": return "HOMING";
+    case "ghost": return "GHOST";
+    case "giant": return "GIANT";
+    case "boomerang": return "BOOMERANG";
+    case "drunk": return "DRUNK";
+    case "earthquake": return "EARTHQUAKE";
     default: return (type as string).toUpperCase();
   }
 }
@@ -516,6 +576,52 @@ function drawPowerUpIcon(p: p5, x: number, y: number, size: number, type: PowerU
       break;
     case "poison":
       p.fill(0, 200, 0);
+      p.circle(x + size / 2, y + size / 2, size);
+      break;
+    case "ice":
+      p.fill(100, 200, 255);
+      p.circle(x + size / 2, y + size / 2, size);
+      break;
+    case "mirror":
+      p.fill(180, 0, 255);
+      p.circle(x + size / 2, y + size / 2, size);
+      break;
+    case "gravity_flip":
+      p.fill(255, 180, 0);
+      p.circle(x + size / 2, y + size / 2, size);
+      break;
+    case "shield":
+      p.fill(0, 255, 255);
+      p.circle(x + size / 2, y + size / 2, size);
+      break;
+    case "rubber":
+      p.fill(0, 220, 255);
+      p.circle(x + size / 2, y + size / 2, size);
+      p.fill(255);
+      p.circle(x + size / 2, y + size / 2, size * 0.3);
+      break;
+    case "homing":
+      p.fill(255, 80, 50);
+      p.circle(x + size / 2, y + size / 2, size);
+      break;
+    case "ghost":
+      p.fill(255, 255, 255, 150);
+      p.circle(x + size / 2, y + size / 2, size);
+      break;
+    case "giant":
+      p.fill(255, 255, 0);
+      p.circle(x + size / 2, y + size / 2, size * 1.3);
+      break;
+    case "boomerang":
+      p.fill(255, 200, 100);
+      p.circle(x + size / 2, y + size / 2, size);
+      break;
+    case "drunk":
+      p.fill(200, 100, 255);
+      p.circle(x + size / 2, y + size / 2, size);
+      break;
+    case "earthquake":
+      p.fill(139, 90, 43);
       p.circle(x + size / 2, y + size / 2, size);
       break;
     default:
