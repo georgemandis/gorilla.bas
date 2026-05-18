@@ -29,7 +29,7 @@ import { randomName } from "./names";
 import { getCostume } from "./costumes";
 import { playSound, startPowerHum, updatePowerHum, stopPowerHum } from "./sound";
 import { trySpawnCrate, updateCrateFall, drawCrate, collectCrate, cycleSelectedPowerUp, consumeSelectedPowerUp } from "./powerups";
-import { applyPowerUpToProjectile, handleRicochet, handleWrapAround, splitClusterBomb, checkPortalEntry, applyHomingNudge } from "./powerup-behaviors";
+import { applyPowerUpToProjectile, handleRicochet, handleWrapAround, splitClusterBomb, checkPortalEntry, applyHomingNudge, handleRubberBounce } from "./powerup-behaviors";
 
 function createInitialState(): GameState {
   return {
@@ -649,6 +649,19 @@ const sketch = (p: p5) => {
               return;
             }
           }
+
+          // Try rubber bounce (screen edges)
+          if (state.projectile!.rubberBouncesRemaining) {
+            let surface: "edge_left" | "edge_right" | "edge_top" = "edge_left";
+            if (pos2.x > WIDTH) surface = "edge_right";
+            if (pos2.y < 0) surface = "edge_top";
+            const bounced = handleRubberBounce(state.projectile!, pos2.x, pos2.y, surface, effectiveGravity);
+            if (bounced) {
+              state.projectile = bounced;
+              playSound("rubber_bounce");
+              return;
+            }
+          }
         }
 
         // Normal miss
@@ -658,6 +671,19 @@ const sketch = (p: p5) => {
       }
       case "building": {
         const projType = state.projectile?.powerUpType;
+        // Rubber: bounce off buildings
+        if (state.projectile?.rubberBouncesRemaining) {
+          const bldg = result.building;
+          const hitTop = pos.x >= bldg.x && pos.x <= bldg.x + bldg.width &&
+                         Math.abs(pos.y - bldg.y) < 5;
+          const surface = hitTop ? "top" : "side";
+          const bounced = handleRubberBounce(state.projectile, pos.x, pos.y, surface as "top" | "side", effectiveGravity);
+          if (bounced) {
+            state.projectile = bounced;
+            playSound("rubber_bounce");
+            return;
+          }
+        }
         if (state.projectile?.powerUpType === "confetti") {
           explosionX = pos.x;
           explosionY = pos.y;
@@ -1669,6 +1695,9 @@ const sketch = (p: p5) => {
       }
     } else if (state.projectile.powerUpType === "homing") {
       p.fill(255, 80, 50);
+      p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+    } else if (state.projectile.powerUpType === "rubber") {
+      p.fill(0, 220, 255);
       p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
     } else {
       p.fill(255, 255, 0);
