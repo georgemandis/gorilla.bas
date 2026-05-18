@@ -4,6 +4,7 @@ import {
   RICOCHET_MAX_BOUNCES, WRAP_MAX_WRAPS, PORTAL_MAX_PASSES,
   CLUSTER_SPLIT_MS, WIDTH,
   CLUSTER_SUB_COUNT, CLUSTER_FAN_DEGREES, CLUSTER_EXPLOSION_MULT, Y_SCALE,
+  RUBBER_MAX_BOUNCES, HOMING_NUDGE, DRUNK_WOBBLE_AMP, GIANT_EXPLOSION_MULT,
 } from "./config";
 import { restartProjectile } from "./physics";
 
@@ -32,7 +33,28 @@ export function applyPowerUpToProjectile(
     case "portal":
       proj.portalPassesRemaining = PORTAL_MAX_PASSES;
       break;
-    // two_bananas, teleportation, confetti, poison: no projectile mods needed
+    case "rubber":
+      proj.rubberBouncesRemaining = RUBBER_MAX_BOUNCES;
+      break;
+    case "giant":
+      proj.explosionRadius = EXPLOSION_RADIUS * GIANT_EXPLOSION_MULT;
+      break;
+    case "drunk": {
+      // Store perpendicular direction in SCREEN SPACE (not launch convention)
+      // proj.vy is launch convention (positive = up), screen vy = -proj.vy * Y_SCALE
+      const screenVy = -proj.vy * Y_SCALE;
+      const speed = Math.sqrt(proj.vx * proj.vx + screenVy * screenVy);
+      if (speed > 0) {
+        proj.drunkPerpX = -screenVy / speed;
+        proj.drunkPerpY = proj.vx / speed;
+      } else {
+        proj.drunkPerpX = 0;
+        proj.drunkPerpY = 1;
+      }
+      break;
+    }
+    // ice, mirror, gravity_flip, shield, homing, ghost, boomerang, earthquake:
+    // no projectile mods needed at launch time
   }
 }
 
@@ -172,4 +194,101 @@ export function checkPortalEntry(
     }
   }
   return null;
+}
+
+export function handleRubberBounce(
+  proj: Projectile,
+  x: number,
+  y: number,
+  hitSurface: "top" | "side" | "edge_left" | "edge_right" | "edge_top",
+  gravity: number
+): Projectile | null {
+  if (!proj.rubberBouncesRemaining || proj.rubberBouncesRemaining <= 0) return null;
+
+  const currentVy = -proj.vy + gravity * proj.t;
+  let newVx = proj.vx;
+  let newVy = -currentVy; // convert back to launch convention
+
+  switch (hitSurface) {
+    case "top":
+      // Bounce off building top: flip vertical
+      newVy = currentVy; // reflect: was going down, now going up in launch convention
+      break;
+    case "side":
+    case "edge_left":
+    case "edge_right":
+      // Bounce off side: flip horizontal
+      newVx = -proj.vx;
+      newVy = -currentVy;
+      break;
+    case "edge_top":
+      // Bounce off top of screen
+      newVy = currentVy;
+      break;
+  }
+
+  // Chaotic velocity mutations
+  newVx *= 0.5 + Math.random(); // 0.5 to 1.5
+  newVy += newVy * (Math.random() * 0.6 - 0.3); // +/- 30%
+  // Increase speed by 10%
+  newVx *= 1.1;
+  newVy *= 1.1;
+
+  const restarted = restartProjectile(proj, x, y, newVx, newVy);
+  restarted.rubberBouncesRemaining = proj.rubberBouncesRemaining - 1;
+  return restarted;
+}
+
+export function applyHomingNudge(
+  proj: Projectile,
+  currentPos: { x: number; y: number },
+  targetX: number,
+  _wind: number,
+  gravity: number
+): Projectile | null {
+  // Only activate after apex (screen-vy becomes positive = moving downward)
+  const screenVy = -proj.vy + gravity * proj.t;
+  if (screenVy <= 0) return null; // still going up
+
+  const diff = targetX - currentPos.x;
+  if (Math.abs(diff) < 5) return null; // close enough
+
+  // Use restartProjectile pattern to avoid position discontinuity
+  const nudgedVx = proj.vx + Math.sign(diff) * HOMING_NUDGE * 0.1;
+  return restartProjectile(proj, currentPos.x, currentPos.y, nudgedVx, -screenVy);
+}
+
+export function applyDrunkWobble(
+  pos: { x: number; y: number },
+  proj: Projectile
+): { x: number; y: number } {
+  if (proj.drunkPerpX === undefined || proj.drunkPerpY === undefined) return pos;
+  const wobble = Math.sin(proj.t * 8) * DRUNK_WOBBLE_AMP;
+  return {
+    x: pos.x + proj.drunkPerpX * wobble,
+    y: pos.y + proj.drunkPerpY * wobble,
+  };
+}
+
+export function handleBoomerangReturn(
+  proj: Projectile,
+  missX: number,
+  missY: number,
+  throwerX: number,
+  throwerY: number
+): Projectile | null {
+  if (proj.boomerangReturned) return null;
+
+  // Calculate angle from miss position back to thrower
+  const dx = throwerX - missX;
+  const dy = throwerY - missY;
+  const angle = Math.atan2(-dy, dx); // negative dy because screen Y is inverted
+  const speed = Math.sqrt(proj.vx * proj.vx + proj.vy * proj.vy) * 0.7;
+
+  const newVx = Math.cos(angle) * speed;
+  const newVy = Math.sin(angle) * speed;
+
+  const restarted = restartProjectile(proj, missX, missY, newVx, newVy);
+  restarted.boomerangReturned = true;
+  return restarted;
 }
