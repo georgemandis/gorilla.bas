@@ -111,15 +111,21 @@ export const ICE_TURNS = 3;
 export const MIRROR_TURNS = 3;
 export const GRAVITY_TURNS = 1;
 export const RUBBER_MAX_BOUNCES = 5;
-export const HOMING_NUDGE = 0.3;
+export const HOMING_NUDGE = 0.4;
 export const DRUNK_WOBBLE_AMP = 15;
 export const GIANT_POWER_MULT = 0.5;
 export const GIANT_EXPLOSION_MULT = 3;
 export const GIANT_HITBOX_MULT = 2;
 export const EARTHQUAKE_SHAKE_MS = 500;
+export const FALLING_SPEED = 4;
+export const CONSTRUCTION_HEIGHT_ADD = 30;
+export const CONSTRUCTION_BUILDING_HEIGHT = 80;
+export const JUMP_ARC_MS = 400;
+export const JUMP_ARC_HEIGHT = 40;
 export const ALL_POWERUP_TYPES: PowerUpType[] = [
   "big_banana", "two_bananas", "ricochet", "wrap_around",
   "cluster_bomb", "teleportation", "portal", "confetti", "poison",
   "ice", "mirror", "gravity_flip", "shield", "rubber", "homing",
   "ghost", "giant", "boomerang", "drunk", "earthquake",
+  "demolition", "construction", "jump",
 ];

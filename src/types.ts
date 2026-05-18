@@ -78,7 +78,8 @@ export type GamePhase =
   | "explosion"
   | "victory"
   | "bananality"
-  | "game_over";
+  | "game_over"
+  | "jump";
 
 export type GravityPreset = "moon" | "earth" | "jupiter";
 export type TimeOfDay = "day" | "night";
@@ -87,7 +88,8 @@ export type CityTheme = "classic" | "neon" | "brick" | "pastel";
 export type PowerUpType = "big_banana" | "two_bananas" | "ricochet" | "wrap_around"
   | "cluster_bomb" | "teleportation" | "portal" | "confetti" | "poison"
   | "ice" | "mirror" | "gravity_flip" | "shield" | "rubber" | "homing"
-  | "ghost" | "giant" | "boomerang" | "drunk" | "earthquake";
+  | "ghost" | "giant" | "boomerang" | "drunk" | "earthquake"
+  | "demolition" | "construction" | "jump";
 
 export interface PowerUpCrate {
   x: number;
@@ -105,6 +107,20 @@ export interface Portal {
   x: number;
   y: number;
   color: "orange" | "blue";
+}
+
+export interface FallingAnim {
+  targetY: number;
+}
+
+export interface JumpAnim {
+  playerIdx: 0 | 1;
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
+  startTime: number;
+  wrapDirection: "left" | "right" | null;
 }
 
 export interface GameState {
@@ -147,4 +163,6 @@ export interface GameState {
   gravityTurns: [number, number];
   shield: [boolean, boolean];
   earthquakeTimer: number;
+  fallingGorillas: [FallingAnim | null, FallingAnim | null];
+  jumpAnim: JumpAnim | null;
 }
