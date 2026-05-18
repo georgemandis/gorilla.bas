@@ -16,9 +16,11 @@ import {
   ALL_POWERUP_TYPES, GIANT_POWER_MULT, GIANT_HITBOX_MULT, HP_OPTIONS,
   EARTHQUAKE_SHAKE_MS,
   FALLING_SPEED,
+  CONSTRUCTION_HEIGHT_ADD,
+  CITY_THEME_COLORS,
 } from "./config";
 import { getPlayerInput, getSystemInput } from "./input";
-import { generateCityscape, placeGorillas, generateWind, randomGorillaPlacements, reshuffleBuildings, checkGorillaGroundSupport } from "./city";
+import { generateCityscape, placeGorillas, generateWind, randomGorillaPlacements, reshuffleBuildings, checkGorillaGroundSupport, insertBuilding } from "./city";
 import { createProjectile, getProjectilePositionWithGravity, advanceProjectile } from "./physics";
 import { checkCollision } from "./collision";
 import { drawGorilla } from "./gorilla";
@@ -710,6 +712,34 @@ const sketch = (p: p5) => {
           triggerEarthquake();
           return;
         }
+        // Construction: create building if banana hit ground level
+        if (state.projectile!.powerUpType === "construction") {
+          const cPos = getProjectilePositionWithGravity(state.projectile!, state.wind, effectiveGravity);
+          if (cPos.y >= BOTTOM_LINE) {
+            const { building: newBuilding, insertIdx } = insertBuilding(
+              state.buildings, cPos.x, state.cityTheme, state.timeOfDay
+            );
+            // Update crate building index if shifted
+            if (state.crate && state.crate.buildingIdx >= insertIdx) {
+              state.crate.buildingIdx++;
+            }
+            // Lift ground-level gorillas that are within the new building
+            for (let i = 0; i < 2; i++) {
+              const g = state.gorillas[i];
+              if (g.y >= BOTTOM_LINE - GORILLA_HEIGHT) {
+                const gCenter = g.x + GORILLA_WIDTH / 2;
+                if (gCenter >= newBuilding.x && gCenter <= newBuilding.x + newBuilding.width) {
+                  g.y = newBuilding.y - GORILLA_HEIGHT;
+                  state.fallingGorillas[i] = null; // cancel any fall
+                }
+              }
+            }
+            state.projectile = null;
+            playSound("construction");
+            resolveThrowEnd();
+            return;
+          }
+        }
         const pos2 = getProjectilePositionWithGravity(state.projectile!, state.wind, effectiveGravity);
         const isEdgeMiss = pos2.x < 0 || pos2.x > WIDTH || pos2.y < 0;
         const isGroundMiss = pos2.y > BOTTOM_LINE;
@@ -815,6 +845,34 @@ const sketch = (p: p5) => {
           } else {
             resolveThrowEnd();
           }
+          break;
+        }
+        if (projType === "construction") {
+          // Repair and extend the hit building
+          result.building.damage = [];
+          const maxBuildingTop = 40 + GORILLA_HEIGHT;
+          result.building.y = Math.max(result.building.y - CONSTRUCTION_HEIGHT_ADD, maxBuildingTop);
+          result.building.height = BOTTOM_LINE - result.building.y;
+          // Regenerate windows
+          const litChance = state.timeOfDay === "night" ? 0.7 : 0.6;
+          const colors = CITY_THEME_COLORS[state.cityTheme];
+          result.building.color = colors[Math.floor(Math.random() * colors.length)];
+          result.building.windows = [];
+          for (let wx = result.building.x + 4; wx < result.building.x + result.building.width - 4; wx += 8) {
+            for (let wy = result.building.y + 4; wy < result.building.y + result.building.height - 6; wy += 10) {
+              result.building.windows.push({ x: wx, y: wy, lit: Math.random() < litChance });
+            }
+          }
+          // Move gorillas on this building up
+          for (let i = 0; i < 2; i++) {
+            const bIdx = findBuildingUnderGorilla(state.gorillas[i], state.buildings);
+            if (bIdx >= 0 && state.buildings[bIdx] === result.building) {
+              state.gorillas[i].y = result.building.y - GORILLA_HEIGHT;
+            }
+          }
+          state.projectile = null;
+          playSound("construction");
+          resolveThrowEnd();
           break;
         }
         if (projType === "demolition") {

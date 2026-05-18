@@ -8,6 +8,7 @@ import {
   GORILLA_WIDTH,
   GORILLA_HEIGHT,
   EXPLOSION_RADIUS,
+  CONSTRUCTION_BUILDING_HEIGHT,
 } from "./config";
 
 type SlopeType = "up" | "down" | "v" | "inv_v" | "v2" | "inv_v2";
@@ -73,7 +74,7 @@ export function generateCityscape(cityTheme: CityTheme = "classic", timeOfDay: T
   return buildings;
 }
 
-function generateWindows(bx: number, by: number, bw: number, bh: number, litChance = 0.6): GameWindow[] {
+export function generateWindows(bx: number, by: number, bw: number, bh: number, litChance = 0.6): GameWindow[] {
   const windows: GameWindow[] = [];
   const hSpacing = 8;
   const vSpacing = 10;
@@ -186,6 +187,46 @@ export function checkGorillaGroundSupport(
     if (!damaged) solidCount++;
   }
   return solidCount / sampleCount >= 0.3;
+}
+
+export function insertBuilding(
+  buildings: Building[],
+  x: number,
+  cityTheme: CityTheme,
+  timeOfDay: TimeOfDay
+): { building: Building; insertIdx: number } {
+  const maxBuildingTop = 40 + GORILLA_HEIGHT;
+
+  // Find the gap — determine available width
+  let gapStart = x;
+  let gapEnd = x + MIN_BUILDING_WIDTH;
+  for (const b of buildings) {
+    if (b.height <= 0) continue;
+    if (b.x + b.width < x) gapStart = Math.max(gapStart, b.x + b.width + 2);
+    if (b.x > x && b.height > 0) { gapEnd = Math.min(gapEnd, b.x - 2); break; }
+  }
+
+  const width = Math.max(MIN_BUILDING_WIDTH, Math.min(gapEnd - gapStart, MAX_BUILDING_WIDTH));
+  let height = CONSTRUCTION_BUILDING_HEIGHT;
+  if (BOTTOM_LINE - height < maxBuildingTop) height = BOTTOM_LINE - maxBuildingTop;
+
+  const colors = CITY_THEME_COLORS[cityTheme];
+  const color = colors[Math.floor(Math.random() * colors.length)];
+  const litChance = timeOfDay === "night" ? 0.7 : 0.6;
+  const bx = gapStart;
+  const by = BOTTOM_LINE - height;
+  const windows = generateWindows(bx, by, width, height, litChance);
+
+  const building: Building = { x: bx, y: by, width, height, color, windows, damage: [] };
+
+  // Find correct sorted position (by x)
+  let insertIdx = buildings.length;
+  for (let i = 0; i < buildings.length; i++) {
+    if (buildings[i].x > bx) { insertIdx = i; break; }
+  }
+  buildings.splice(insertIdx, 0, building);
+
+  return { building, insertIdx };
 }
 
 export function reshuffleBuildings(buildings: Building[], cityTheme: CityTheme, timeOfDay: TimeOfDay): void {
