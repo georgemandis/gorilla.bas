@@ -383,10 +383,6 @@ const sketch = (p: p5) => {
   function updateRoundStart() {
     if (p.millis() - state.roundStartTimer > ROUND_START_DELAY_MS) {
       state.angle = lastAngles[state.currentPlayer - 1];
-      // Decrement poison for current player at round start
-      if (state.poisonTurns[state.currentPlayer - 1] > 0) {
-        state.poisonTurns[state.currentPlayer - 1]--;
-      }
       state.phase = "aim";
       trySpawnCrate(state, state.wind);
     }
@@ -1383,6 +1379,15 @@ const sketch = (p: p5) => {
       const nextPlayerIdx = (state.currentPlayer === 1 ? 1 : 0) as 0 | 1;
       if (state.poisonTurns[nextPlayerIdx] > 0) {
         state.poisonTurns[nextPlayerIdx]--;
+      }
+      if (state.iceTurns[nextPlayerIdx] > 0) {
+        state.iceTurns[nextPlayerIdx]--;
+      }
+      if (state.mirrorTurns[nextPlayerIdx] > 0) {
+        state.mirrorTurns[nextPlayerIdx]--;
+      }
+      if (state.gravityTurns[nextPlayerIdx] > 0) {
+        state.gravityTurns[nextPlayerIdx]--;
       }
       switchPlayer();
       state.angle = lastAngles[state.currentPlayer - 1];
