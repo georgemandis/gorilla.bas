@@ -13,7 +13,7 @@ import {
   WINDOW_COLORS, NEON_WINDOW_COLORS,
   SKY_COLORS, GROUND_COLORS,
   POISON_TURNS, POISON_POWER_CAP,
-  ALL_POWERUP_TYPES,
+  ALL_POWERUP_TYPES, GIANT_POWER_MULT,
 } from "./config";
 import { getPlayerInput, getSystemInput } from "./input";
 import { generateCityscape, placeGorillas, generateWind, randomGorillaPlacements } from "./city";
@@ -439,34 +439,50 @@ const sketch = (p: p5) => {
   }
 
   function launchBanana() {
-    // Remember this player's angle for their next turn
     lastAngles[state.currentPlayer - 1] = state.angle;
-
     const gorilla = state.gorillas[state.currentPlayer - 1];
-    // Launch from above the gorilla's head, offset in throw direction
+    const playerIdx = (state.currentPlayer - 1) as 0 | 1;
+
+    // Consume power-up first (skip on extra throw)
+    const activePowerUp = state.isExtraThrow ? null : consumeSelectedPowerUp(state, playerIdx);
+
+    // Shield: instant deploy, no projectile
+    if (activePowerUp === "shield") {
+      state.shield[playerIdx] = true;
+      playSound("shield_deploy");
+      gorilla.armState = "down";
+      resolveThrowEnd();
+      return;
+    }
+
     const angleRad = (state.angle * Math.PI) / 180;
     const launchOffset = GORILLA_HEIGHT / 2 + 5;
     const startX = gorilla.x + GORILLA_WIDTH / 2 + Math.cos(angleRad) * launchOffset;
     const startY = gorilla.y - Math.sin(angleRad) * launchOffset;
 
-    state.projectile = createProjectile(startX, startY, state.angle, state.power);
+    // Giant: reduce power
+    let effectivePower = state.power;
+    if (activePowerUp === "giant") {
+      effectivePower *= GIANT_POWER_MULT;
+    }
 
-    // Apply active power-up (skip consume on extra throw — power-up already consumed)
-    const activePowerUp = state.isExtraThrow ? null : consumeSelectedPowerUp(state, (state.currentPlayer - 1) as 0 | 1);
+    state.projectile = createProjectile(startX, startY, state.angle, effectivePower);
 
-    // For portal extra throw, tag projectile as portal so it places the second portal
+    // Mirror: negate horizontal velocity
+    if (state.mirrorTurns[playerIdx] > 0) {
+      state.projectile.vx = -state.projectile.vx;
+    }
+
+    // For portal extra throw, tag projectile as portal
     if (state.isExtraThrow && state.portals[0] !== null && state.portals[1] === null) {
       state.projectile.powerUpType = "portal";
     } else {
       applyPowerUpToProjectile(state.projectile, activePowerUp, p.millis());
     }
 
-    // Set extra throw for two_bananas
     if (activePowerUp === "two_bananas") {
       state.extraThrowRemaining = true;
     }
-
-    // Set extra throw for portal (needs second throw)
     if (activePowerUp === "portal") {
       state.extraThrowRemaining = true;
     }
@@ -474,8 +490,6 @@ const sketch = (p: p5) => {
     state.phase = "flight";
     bananaRotation = 0;
     playSound("throw");
-
-    // Reset arm
     gorilla.armState = "down";
   }
 
@@ -682,6 +696,15 @@ const sketch = (p: p5) => {
         break;
       }
       case "gorilla": {
+        // Shield absorption
+        const victimIdx = (result.gorilla.playerNum - 1) as 0 | 1;
+        if (state.shield[victimIdx]) {
+          state.shield[victimIdx] = false;
+          state.projectile = null;
+          playSound("shield_break");
+          resolveThrowEnd();
+          break;
+        }
         if (state.projectile?.powerUpType === "confetti") {
           // Confetti! No damage, no score
           explosionX = pos.x;
@@ -750,7 +773,15 @@ const sketch = (p: p5) => {
           playSound("explosion");
           break;
         }
-        case "gorilla":
+        case "gorilla": {
+          // Shield absorption for sub-projectiles
+          const subVictimIdx = (result.gorilla.playerNum - 1) as 0 | 1;
+          if (state.shield[subVictimIdx]) {
+            state.shield[subVictimIdx] = false;
+            playSound("shield_break");
+            sub.active = false;
+            break;
+          }
           // Gorilla hit — end entire cluster, score the hit
           state.activeSubProjectiles = [];
           explosionX = subPos.x;
@@ -761,6 +792,7 @@ const sketch = (p: p5) => {
           state.phase = "explosion";
           playSound("hit");
           return;
+        }
         case "crate": {
           const playerIdx = (state.currentPlayer - 1) as 0 | 1;
           const collected = collectCrate(state, playerIdx);
