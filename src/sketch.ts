@@ -29,7 +29,7 @@ import { randomName } from "./names";
 import { getCostume } from "./costumes";
 import { playSound, startPowerHum, updatePowerHum, stopPowerHum } from "./sound";
 import { trySpawnCrate, updateCrateFall, drawCrate, collectCrate, cycleSelectedPowerUp, consumeSelectedPowerUp } from "./powerups";
-import { applyPowerUpToProjectile, handleRicochet, handleWrapAround, splitClusterBomb, checkPortalEntry, applyHomingNudge, handleRubberBounce, applyDrunkWobble } from "./powerup-behaviors";
+import { applyPowerUpToProjectile, handleRicochet, handleWrapAround, splitClusterBomb, checkPortalEntry, applyHomingNudge, handleRubberBounce, applyDrunkWobble, handleBoomerangReturn } from "./powerup-behaviors";
 
 function createInitialState(): GameState {
   return {
@@ -538,7 +538,8 @@ const sketch = (p: p5) => {
     if (!state.projectile) return;
 
     advanceProjectile(state.projectile);
-    bananaRotation = (bananaRotation + 0.3) % (Math.PI * 2);
+    const rotSpeed = (state.projectile.powerUpType === "boomerang" && state.projectile.boomerangReturned) ? 0.6 : 0.3;
+    bananaRotation = (bananaRotation + rotSpeed) % (Math.PI * 2);
 
     // Gravity flip: use negative gravity for position calculation
     const playerIdx = (state.currentPlayer - 1) as 0 | 1;
@@ -664,6 +665,21 @@ const sketch = (p: p5) => {
             if (bounced) {
               state.projectile = bounced;
               playSound("rubber_bounce");
+              return;
+            }
+          }
+
+          // Try boomerang return (side edges only, not top)
+          const isSideEdgeMiss = pos2.x < 0 || pos2.x > WIDTH;
+          if (state.projectile!.powerUpType === "boomerang" && !state.projectile!.boomerangReturned && isSideEdgeMiss) {
+            const thrower = state.gorillas[state.currentPlayer - 1];
+            const throwerCX = thrower.x + GORILLA_WIDTH / 2;
+            const throwerCY = thrower.y + GORILLA_HEIGHT / 2;
+            const returned = handleBoomerangReturn(state.projectile!, pos2.x, pos2.y, throwerCX, throwerCY);
+            if (returned) {
+              state.projectile = returned;
+              playSound("boomerang_return");
+              bananaRotation = 0;
               return;
             }
           }
@@ -1703,6 +1719,9 @@ const sketch = (p: p5) => {
       }
     } else if (state.projectile.powerUpType === "homing") {
       p.fill(255, 80, 50);
+      p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+    } else if (state.projectile.powerUpType === "boomerang") {
+      p.fill(255, 200, 100);
       p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
     } else if (state.projectile.powerUpType === "rubber") {
       p.fill(0, 220, 255);
