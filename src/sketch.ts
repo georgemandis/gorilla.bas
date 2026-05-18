@@ -72,6 +72,7 @@ function createInitialState(): GameState {
     selectedPowerUp: null,
     selectedSlotIndex: -1,
     inventoryOpen: false,
+    inventoryScrollOffset: 0,
     extraThrowRemaining: false,
     isExtraThrow: false,
     portals: [null, null],
@@ -209,7 +210,7 @@ const sketch = (p: p5) => {
 
       case "aim":
         updateAim(activeInput);
-        updateTaunts(p1Input, p2Input);
+        if (!state.inventoryOpen) updateTaunts(p1Input, p2Input);
         updateKonamiCode(p1Input, p2Input);
         drawGameplay(p);
         if (!isActiveTaunting()) {
@@ -401,6 +402,7 @@ const sketch = (p: p5) => {
     state.selectedPowerUp = null;
     state.selectedSlotIndex = -1;
     state.inventoryOpen = false;
+    state.inventoryScrollOffset = 0;
     state.hp = [state.maxHP, state.maxHP];
     state.shield = [false, false];
     state.earthquakeTimer = 0;
@@ -439,14 +441,25 @@ const sketch = (p: p5) => {
       const curUp = input.dpadUp;
       const curDown = input.dpadDown;
 
+      // Max visible items in the HUD panel (must match ui.ts panel math)
+      const maxVisible = Math.floor((Math.min(inv.length * 12 + 8, 120) - 8) / 12);
+
       if (curUp && !prevDpadUp && inv.length > 0) {
         state.selectedSlotIndex = Math.max(0, state.selectedSlotIndex - 1);
         state.selectedPowerUp = inv[state.selectedSlotIndex];
+        // Scroll up only when selection goes above visible window
+        if (state.selectedSlotIndex < state.inventoryScrollOffset) {
+          state.inventoryScrollOffset = state.selectedSlotIndex;
+        }
         playSound("powerup_select");
       }
       if (curDown && !prevDpadDown && inv.length > 0) {
         state.selectedSlotIndex = Math.min(inv.length - 1, state.selectedSlotIndex + 1);
         state.selectedPowerUp = inv[state.selectedSlotIndex];
+        // Scroll down only when selection goes below visible window
+        if (state.selectedSlotIndex >= state.inventoryScrollOffset + maxVisible) {
+          state.inventoryScrollOffset = state.selectedSlotIndex - maxVisible + 1;
+        }
         playSound("powerup_select");
       }
       prevDpadUp = curUp;
@@ -455,6 +468,7 @@ const sketch = (p: p5) => {
       // B confirms selection and closes
       if (input.b && !prevB) {
         state.inventoryOpen = false;
+    state.inventoryScrollOffset = 0;
         playSound("powerup_select");
       }
 
@@ -463,6 +477,7 @@ const sketch = (p: p5) => {
         state.selectedPowerUp = null;
         state.selectedSlotIndex = -1;
         state.inventoryOpen = false;
+    state.inventoryScrollOffset = 0;
       }
     } else {
       // B opens inventory (if player has items)
@@ -1407,6 +1422,7 @@ const sketch = (p: p5) => {
     state.selectedPowerUp = null;
     state.selectedSlotIndex = -1;
     state.inventoryOpen = false;
+    state.inventoryScrollOffset = 0;
     state.extraThrowRemaining = false;
     state.isExtraThrow = false;
     state.activeSubProjectiles = [];
@@ -1839,6 +1855,7 @@ const sketch = (p: p5) => {
     state.selectedPowerUp = null;
     state.selectedSlotIndex = -1;
     state.inventoryOpen = false;
+    state.inventoryScrollOffset = 0;
     state.isExtraThrow = false;
   }
 

@@ -522,10 +522,7 @@ export function drawInventoryHUD(p: p5, state: GameState): void {
 
     // Items list (scrollable if too many)
     const maxVisible = Math.floor((panelH - 8) / itemH);
-    let scrollOffset = 0;
-    if (state.selectedSlotIndex >= maxVisible) {
-      scrollOffset = state.selectedSlotIndex - maxVisible + 1;
-    }
+    const scrollOffset = state.inventoryScrollOffset;
 
     for (let i = 0; i < Math.min(inv.length, maxVisible); i++) {
       const dataIdx = i + scrollOffset;
