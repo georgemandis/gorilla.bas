@@ -1,10 +1,10 @@
 import p5 from "p5";
-import type { Gorilla, ArmState, GorillaCostume } from "./types";
+import type { Gorilla, ArmState, GorillaCostume, GorillaTints } from "./types";
 
 const DEFAULT_BODY = "#C8782A";
 const DEFAULT_EYE = "#FFFFFF";
 
-export function drawGorilla(p: p5, gorilla: Gorilla, costume?: GorillaCostume | null, poisoned?: boolean): void {
+export function drawGorilla(p: p5, gorilla: Gorilla, costume?: GorillaCostume | null, tints?: GorillaTints): void {
   const { x, y, armState } = gorilla;
   const bodyColor = costume?.bodyColor ?? DEFAULT_BODY;
   const eyeColor = costume?.eyeColor ?? DEFAULT_EYE;
@@ -34,11 +34,39 @@ export function drawGorilla(p: p5, gorilla: Gorilla, costume?: GorillaCostume | 
   // Head
   p.rect(x + 5, y + 2, 10, 9);
 
-  // Poison green tint overlay
-  if (poisoned) {
+  // Debuff tint overlays (all stack)
+  if (tints?.poison) {
     p.fill(0, 180, 0, 80);
-    p.rect(x + 4, y + 10, 12, 10); // body tint
-    p.rect(x + 5, y + 2, 10, 9);   // head tint
+    p.rect(x + 4, y + 10, 12, 10);
+    p.rect(x + 5, y + 2, 10, 9);
+  }
+  if (tints?.ice) {
+    p.fill(100, 200, 255, 80);
+    p.rect(x + 4, y + 10, 12, 10);
+    p.rect(x + 5, y + 2, 10, 9);
+  }
+  if (tints?.mirror) {
+    p.fill(180, 0, 255, 80);
+    p.rect(x + 4, y + 10, 12, 10);
+    p.rect(x + 5, y + 2, 10, 9);
+  }
+  if (tints?.gravity) {
+    p.fill(255, 180, 0, 80);
+    p.rect(x + 4, y + 10, 12, 10);
+    p.rect(x + 5, y + 2, 10, 9);
+    // Small down-arrow indicator above head
+    p.fill(255, 180, 0);
+    p.triangle(x + 8, y - 2, x + 12, y - 2, x + 10, y + 1);
+  }
+  if (tints?.shield) {
+    p.fill(0, 255, 255, 40);
+    p.noStroke();
+    p.ellipse(x + 10, y + 12, 24, 30);
+    p.stroke(0, 255, 255, 80);
+    p.strokeWeight(1);
+    p.noFill();
+    p.ellipse(x + 10, y + 12, 24, 30);
+    p.noStroke();
   }
 
   // Eyes

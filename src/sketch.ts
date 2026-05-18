@@ -1094,7 +1094,13 @@ const sketch = (p: p5) => {
 
       // Draw gorillas (getting battered)
       for (let i = 0; i < 2; i++) {
-        drawGorilla(p, state.gorillas[i], costumes[i], state.poisonTurns[i] > 0);
+        drawGorilla(p, state.gorillas[i], costumes[i], {
+          poison: state.poisonTurns[i] > 0,
+          ice: state.iceTurns[i] > 0,
+          mirror: state.mirrorTurns[i] > 0,
+          gravity: state.gravityTurns[i] > 0,
+          shield: state.shield[i],
+        });
       }
 
       // Evil sun/moon laughing maniacally
@@ -1420,16 +1426,34 @@ const sketch = (p: p5) => {
         p.translate(g.x + GORILLA_WIDTH / 2, g.y + GORILLA_HEIGHT / 2 + loserFallOffset);
         p.scale(1, -1);
         p.translate(-(g.x + GORILLA_WIDTH / 2), -(g.y + GORILLA_HEIGHT / 2));
-        drawGorilla(p, g, costumes[i], state.poisonTurns[i] > 0);
+        drawGorilla(p, g, costumes[i], {
+          poison: state.poisonTurns[i] > 0,
+          ice: state.iceTurns[i] > 0,
+          mirror: state.mirrorTurns[i] > 0,
+          gravity: state.gravityTurns[i] > 0,
+          shield: state.shield[i],
+        });
         p.pop();
       } else if (tauntDancePlayer !== null && i === tauntDancePlayer - 1 && tauntDanceHop !== 0) {
         // Draw dancing gorilla with hop offset
         p.push();
         p.translate(0, tauntDanceHop);
-        drawGorilla(p, state.gorillas[i], costumes[i], state.poisonTurns[i] > 0);
+        drawGorilla(p, state.gorillas[i], costumes[i], {
+          poison: state.poisonTurns[i] > 0,
+          ice: state.iceTurns[i] > 0,
+          mirror: state.mirrorTurns[i] > 0,
+          gravity: state.gravityTurns[i] > 0,
+          shield: state.shield[i],
+        });
         p.pop();
       } else {
-        drawGorilla(p, state.gorillas[i], costumes[i], state.poisonTurns[i] > 0);
+        drawGorilla(p, state.gorillas[i], costumes[i], {
+          poison: state.poisonTurns[i] > 0,
+          ice: state.iceTurns[i] > 0,
+          mirror: state.mirrorTurns[i] > 0,
+          gravity: state.gravityTurns[i] > 0,
+          shield: state.shield[i],
+        });
       }
     }
 
