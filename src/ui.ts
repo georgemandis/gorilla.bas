@@ -481,32 +481,88 @@ export function drawInventoryHUD(p: p5, state: GameState): void {
   const iconSize = 5;
   const spacing = 7;
 
-  // Player 1 inventory — below score, left side
+  // Player 1 inventory dots — below score, left side
   for (let i = 0; i < state.inventory[0].length; i++) {
     const x = 4 + i * spacing;
     const y = 12;
     drawPowerUpIcon(p, x, y, iconSize, state.inventory[0][i]);
   }
 
-  // Player 2 inventory — below score, right side
+  // Player 2 inventory dots — below score, right side
   for (let i = 0; i < state.inventory[1].length; i++) {
     const x = WIDTH - 4 - (state.inventory[1].length - i) * spacing;
     const y = 12;
     drawPowerUpIcon(p, x, y, iconSize, state.inventory[1][i]);
   }
 
-  // Show selected power-up name for current player
-  if (state.selectedPowerUp) {
-    const label = powerUpDisplayName(state.selectedPowerUp);
+  // Selected power-up overlay panel
+  if (state.selectedPowerUp && (state.phase === "aim" || state.phase === "power")) {
+    const playerIdx = (state.currentPlayer - 1) as 0 | 1;
+    const inv = state.inventory[playerIdx];
+    if (inv.length === 0) return;
+
+    // Panel dimensions
+    const itemH = 12;
+    const panelW = 80;
+    const panelH = Math.min(inv.length * itemH + 8, 120);
+    const panelX = state.currentPlayer === 1 ? 4 : WIDTH - panelW - 4;
+    const panelY = 20;
+
+    // Semi-transparent background
+    p.fill(0, 0, 0, 180);
     p.noStroke();
-    p.textSize(5);
-    p.fill(255, 255, 100);
-    if (state.currentPlayer === 1) {
+    p.rect(panelX, panelY, panelW, panelH);
+
+    // Border
+    p.stroke(255, 255, 100, 150);
+    p.strokeWeight(1);
+    p.noFill();
+    p.rect(panelX, panelY, panelW, panelH);
+    p.noStroke();
+
+    // Items list (scrollable if too many)
+    const maxVisible = Math.floor((panelH - 8) / itemH);
+    let scrollOffset = 0;
+    if (state.selectedSlotIndex >= maxVisible) {
+      scrollOffset = state.selectedSlotIndex - maxVisible + 1;
+    }
+
+    for (let i = 0; i < Math.min(inv.length, maxVisible); i++) {
+      const dataIdx = i + scrollOffset;
+      if (dataIdx >= inv.length) break;
+      const iy = panelY + 4 + i * itemH;
+      const isSelected = dataIdx === state.selectedSlotIndex;
+
+      // Highlight selected row
+      if (isSelected) {
+        p.fill(255, 255, 100, 40);
+        p.noStroke();
+        p.rect(panelX + 2, iy - 1, panelW - 4, itemH);
+      }
+
+      // Icon
+      drawPowerUpIcon(p, panelX + 4, iy + 1, 7, inv[dataIdx]);
+
+      // Label
+      p.textSize(5);
       p.textAlign(p.LEFT, p.TOP);
-      p.text(label, 4, 19);
-    } else {
-      p.textAlign(p.RIGHT, p.TOP);
-      p.text(label, WIDTH - 4, 19);
+      p.fill(isSelected ? 255 : 180);
+      p.noStroke();
+      p.text(powerUpDisplayName(inv[dataIdx]), panelX + 15, iy + 2);
+    }
+
+    // Scroll indicators
+    if (scrollOffset > 0) {
+      p.fill(255, 255, 100);
+      p.textAlign(p.CENTER, p.TOP);
+      p.textSize(4);
+      p.text("^", panelX + panelW / 2, panelY + 1);
+    }
+    if (scrollOffset + maxVisible < inv.length) {
+      p.fill(255, 255, 100);
+      p.textAlign(p.CENTER, p.BOTTOM);
+      p.textSize(4);
+      p.text("v", panelX + panelW / 2, panelY + panelH - 1);
     }
   }
 }
