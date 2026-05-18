@@ -13,7 +13,7 @@ import {
   WINDOW_COLORS, NEON_WINDOW_COLORS,
   SKY_COLORS, GROUND_COLORS,
   POISON_TURNS, POISON_POWER_CAP, ICE_TURNS, MIRROR_TURNS, GRAVITY_TURNS,
-  ALL_POWERUP_TYPES, GIANT_POWER_MULT, GIANT_HITBOX_MULT, HP_OPTIONS,
+  ALL_POWERUP_TYPES, GIANT_POWER_MULT, GIANT_HITBOX_MULT, HP_OPTIONS, STARTING_ITEMS_OPTIONS,
   EARTHQUAKE_SHAKE_MS,
   FALLING_SPEED,
   CONSTRUCTION_HEIGHT_ADD,
@@ -337,7 +337,7 @@ const sketch = (p: p5) => {
     prevDpadRight = curRight;
 
     if (dpad === "up") configCursor = Math.max(0, configCursor - 1);
-    if (dpad === "down") configCursor = Math.min(4, configCursor + 1);
+    if (dpad === "down") configCursor = Math.min(5, configCursor + 1);
 
     if (dpad === "left" || dpad === "right") {
       const dir = dpad === "right" ? 1 : -1;
@@ -362,6 +362,10 @@ const sketch = (p: p5) => {
         const idx = HP_OPTIONS.indexOf(state.maxHP);
         const newIdx = (idx + dir + HP_OPTIONS.length) % HP_OPTIONS.length;
         state.maxHP = HP_OPTIONS[newIdx];
+      } else if (configCursor === 5) {
+        const idx = STARTING_ITEMS_OPTIONS.indexOf(state.startingItems);
+        const newIdx = (idx + dir + STARTING_ITEMS_OPTIONS.length) % STARTING_ITEMS_OPTIONS.length;
+        state.startingItems = STARTING_ITEMS_OPTIONS[newIdx];
       }
     }
 
@@ -410,10 +414,15 @@ const sketch = (p: p5) => {
     state.earthquakeTimer = 0;
     state.fallingGorillas = [null, null];
     state.jumpAnim = null;
+    state.floatingText = null;
     // iceTurns, mirrorTurns, gravityTurns persist across rounds (like poisonTurns)
-    // TODO: remove after testing — give both players all power-ups each round
-    state.inventory[0] = [...ALL_POWERUP_TYPES];
-    state.inventory[1] = [...ALL_POWERUP_TYPES];
+    // Assign random starting items
+    state.inventory[0] = [];
+    state.inventory[1] = [];
+    for (let i = 0; i < state.startingItems; i++) {
+      state.inventory[0].push(ALL_POWERUP_TYPES[Math.floor(Math.random() * ALL_POWERUP_TYPES.length)]);
+      state.inventory[1].push(ALL_POWERUP_TYPES[Math.floor(Math.random() * ALL_POWERUP_TYPES.length)]);
+    }
     state.phase = "round_start";
     state.roundStartTimer = p.millis();
   }

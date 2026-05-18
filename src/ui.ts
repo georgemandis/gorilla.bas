@@ -537,6 +537,7 @@ export function drawConfigScreen(
     { label: "TIME", value: state.timeOfDay.toUpperCase() },
     { label: "CITY", value: state.cityTheme.toUpperCase() },
     { label: "GORILLA HP", value: String(state.maxHP) },
+    { label: "STARTING ITEMS", value: String(state.startingItems) },
   ];
 
   p.textSize(6);
