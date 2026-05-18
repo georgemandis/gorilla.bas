@@ -29,7 +29,7 @@ import { randomName } from "./names";
 import { getCostume } from "./costumes";
 import { playSound, startPowerHum, updatePowerHum, stopPowerHum } from "./sound";
 import { trySpawnCrate, updateCrateFall, drawCrate, collectCrate, cycleSelectedPowerUp, consumeSelectedPowerUp } from "./powerups";
-import { applyPowerUpToProjectile, handleRicochet, handleWrapAround, splitClusterBomb, checkPortalEntry } from "./powerup-behaviors";
+import { applyPowerUpToProjectile, handleRicochet, handleWrapAround, splitClusterBomb, checkPortalEntry, applyHomingNudge } from "./powerup-behaviors";
 
 function createInitialState(): GameState {
   return {
@@ -558,6 +558,16 @@ const sketch = (p: p5) => {
     }
 
     const pos = getProjectilePositionWithGravity(state.projectile, state.wind, effectiveGravity);
+
+    // Homing: nudge toward opponent after apex
+    if (state.projectile.powerUpType === "homing") {
+      const opponentIdx = state.currentPlayer === 1 ? 1 : 0;
+      const targetX = state.gorillas[opponentIdx].x + GORILLA_WIDTH / 2;
+      const homingResult = applyHomingNudge(state.projectile, pos, targetX, state.wind, effectiveGravity);
+      if (homingResult) {
+        state.projectile = homingResult;
+      }
+    }
 
     // Check if banana enters a portal (only for non-portal bananas when both portals exist)
     if (state.portals[0] && state.portals[1] && state.projectile.powerUpType !== "portal") {
@@ -1618,6 +1628,20 @@ const sketch = (p: p5) => {
       ? (state.projectile.explosionRadius / EXPLOSION_RADIUS)
       : 1;
 
+    // Homing trail (drawn before main banana transform)
+    if (state.projectile.powerUpType === "homing") {
+      p.noStroke();
+      for (let ti = 1; ti <= 3; ti++) {
+        const trailT = Math.max(0, state.projectile.t - ti * 0.3);
+        const tp = getProjectilePositionWithGravity(
+          { ...state.projectile, t: trailT },
+          state.wind, drawGravity
+        );
+        p.fill(255, 80, 50, 80 - ti * 20);
+        p.circle(tp.x, tp.y, 3);
+      }
+    }
+
     p.push();
     p.translate(pos.x, pos.y);
     p.rotate(bananaRotation);
@@ -1643,6 +1667,9 @@ const sketch = (p: p5) => {
         p.fill(255, 255, 255, 120);
         p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
       }
+    } else if (state.projectile.powerUpType === "homing") {
+      p.fill(255, 80, 50);
+      p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
     } else {
       p.fill(255, 255, 0);
       p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
