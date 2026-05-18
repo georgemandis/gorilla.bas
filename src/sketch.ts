@@ -737,6 +737,22 @@ const sketch = (p: p5) => {
       // Landing
       gorilla.x = anim.endX;
       gorilla.y = anim.endY;
+      // Auto-collect crate on landing building
+      if (state.crate && !state.crate.falling) {
+        const landingBldgIdx = findBuildingUnderGorilla(gorilla, state.buildings);
+        if (landingBldgIdx >= 0 && landingBldgIdx === state.crate.buildingIdx) {
+          const crateX = state.crate.x + 5;
+          const crateY = state.crate.y;
+          const result = collectCrate(state, anim.playerIdx);
+          if (result === "full") {
+            setFloatingText(crateX, crateY, "FULL!", "red");
+            playSound("crate_destroy");
+          } else if (result) {
+            setFloatingText(crateX, crateY, powerUpShortName(result), "green");
+            playSound("crate_collect");
+          }
+        }
+      }
       gorilla.armState = "down";
       state.jumpAnim = null;
       playSound("jump_land");
@@ -1908,8 +1924,32 @@ const sketch = (p: p5) => {
 
     // Draw crate
     if (state.crate) {
+      const wasFalling = state.crate.falling;
       updateCrateFall(state.crate);
-      drawCrate(p, state.crate);
+
+      // Auto-collect if crate just landed on a gorilla's building
+      if (wasFalling && !state.crate.falling) {
+        const checkOrder = [state.currentPlayer - 1, state.currentPlayer === 1 ? 1 : 0];
+        for (const gi of checkOrder) {
+          if (!state.crate) break;
+          const gIdx = findBuildingUnderGorilla(state.gorillas[gi], state.buildings);
+          if (gIdx >= 0 && gIdx === state.crate.buildingIdx) {
+            const crateX = state.crate.x + 5;
+            const crateY = state.crate.y;
+            const result = collectCrate(state, gi as 0 | 1);
+            if (result === "full") {
+              setFloatingText(crateX, crateY, "FULL!", "red");
+              playSound("crate_destroy");
+            } else if (result) {
+              setFloatingText(crateX, crateY, powerUpShortName(result), "green");
+              playSound("crate_collect");
+            }
+            break;
+          }
+        }
+      }
+
+      if (state.crate) drawCrate(p, state.crate);
     }
 
     // Update and draw floating text
