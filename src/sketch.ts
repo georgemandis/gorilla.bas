@@ -1924,6 +1924,7 @@ const sketch = (p: p5) => {
     const sky = SKY_COLORS[state.timeOfDay];
 
     for (const b of buildings) {
+      if (b.height <= 0) continue;
       p.fill(b.color);
       p.noStroke();
       p.rect(b.x, b.y, b.width, b.height);

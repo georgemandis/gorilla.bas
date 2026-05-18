@@ -120,6 +120,7 @@ export function randomGorillaPlacements(
 ): [{ x: number; y: number; buildingIdx: number }, { x: number; y: number; buildingIdx: number }] | null {
   // Find buildings with at least 50% undamaged roof
   const viable = buildings.map((b, i) => ({ b, i })).filter(({ b, i }) => {
+    if (b.height <= 0) return false; // demolished
     if (i === currentP1Idx || i === currentP2Idx) return false;
     const roofDamage = b.damage.filter(d => d.cy <= b.y + 5).length;
     return roofDamage < b.width / (EXPLOSION_RADIUS * 2);
