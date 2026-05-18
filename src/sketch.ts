@@ -13,7 +13,7 @@ import {
   WINDOW_COLORS, NEON_WINDOW_COLORS,
   SKY_COLORS, GROUND_COLORS,
   POISON_TURNS, POISON_POWER_CAP, ICE_TURNS, MIRROR_TURNS, GRAVITY_TURNS,
-  ALL_POWERUP_TYPES, GIANT_POWER_MULT,
+  ALL_POWERUP_TYPES, GIANT_POWER_MULT, GIANT_HITBOX_MULT,
 } from "./config";
 import { getPlayerInput, getSystemInput } from "./input";
 import { generateCityscape, placeGorillas, generateWind, randomGorillaPlacements } from "./city";
@@ -569,7 +569,11 @@ const sketch = (p: p5) => {
       }
     }
 
-    const result = checkCollision(pos.x, pos.y, state.projectile.t, state.buildings, state.gorillas, state.crate);
+    const collisionOptions = {
+      skipBuildings: state.projectile.powerUpType === "ghost",
+      gorillaHitboxMult: state.projectile.powerUpType === "giant" ? GIANT_HITBOX_MULT : 1,
+    };
+    const result = checkCollision(pos.x, pos.y, state.projectile.t, state.buildings, state.gorillas, state.crate, collisionOptions);
 
     // Portal banana — suppress damage, place portal
     if (state.projectile?.powerUpType === "portal") {
@@ -643,6 +647,7 @@ const sketch = (p: p5) => {
         break;
       }
       case "building": {
+        const projType = state.projectile?.powerUpType;
         if (state.projectile?.powerUpType === "confetti") {
           explosionX = pos.x;
           explosionY = pos.y;
@@ -680,6 +685,7 @@ const sketch = (p: p5) => {
         state.lastHitPlayer = null;
         state.phase = "explosion";
         result.building.damage.push({ cx: pos.x, cy: pos.y, radius: buildingExpRadius });
+        if (projType === "giant") playSound("giant_thud");
         playSound("explosion");
         break;
       }
@@ -1631,6 +1637,12 @@ const sketch = (p: p5) => {
       p.strokeWeight(1);
       p.noFill();
       p.arc(0, 0, 10 * scale, 8 * scale, 0.3, Math.PI - 0.3);
+    } else if (state.projectile.powerUpType === "ghost") {
+      const flicker = Math.floor(p.millis() / 100) % 6 !== 0;
+      if (flicker) {
+        p.fill(255, 255, 255, 120);
+        p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+      }
     } else {
       p.fill(255, 255, 0);
       p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
