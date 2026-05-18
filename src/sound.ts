@@ -6,7 +6,7 @@ function getCtx(): AudioContext {
   return ctx;
 }
 
-export type SoundName = "throw" | "explosion" | "victory" | "hit" | "aim_tick" | "power_lock" | "taunt_dance" | "taunt_bubble" | "bananality_omen" | "bananality_impact" | "bananality_reveal" | "crate_collect" | "crate_land" | "powerup_select" | "cluster_split" | "confetti_pop" | "teleport_zap" | "poison_hit" | "portal_whoosh" | "portal_place" | "ice_hit" | "mirror_hit" | "gravity_hit" | "shield_deploy" | "shield_break" | "rubber_bounce" | "homing_lock" | "ghost_whoosh" | "giant_thud" | "boomerang_return" | "drunk_wobble" | "earthquake_rumble" | "demolition" | "construction" | "jump_launch" | "jump_land";
+export type SoundName = "throw" | "explosion" | "victory" | "hit" | "aim_tick" | "power_lock" | "taunt_dance" | "taunt_bubble" | "bananality_omen" | "bananality_impact" | "bananality_reveal" | "crate_collect" | "crate_destroy" | "crate_land" | "powerup_select" | "cluster_split" | "confetti_pop" | "teleport_zap" | "poison_hit" | "portal_whoosh" | "portal_place" | "ice_hit" | "mirror_hit" | "gravity_hit" | "shield_deploy" | "shield_break" | "rubber_bounce" | "homing_lock" | "ghost_whoosh" | "giant_thud" | "boomerang_return" | "drunk_wobble" | "earthquake_rumble" | "demolition" | "construction" | "jump_launch" | "jump_land";
 
 export function playSound(name: SoundName): void {
   try {
@@ -23,6 +23,7 @@ export function playSound(name: SoundName): void {
       case "bananality_impact": playBanalityImpact(); break;
       case "bananality_reveal": playBanalityReveal(); break;
       case "crate_collect": playCrateCollect(); break;
+      case "crate_destroy": playCrateDestroy(); break;
       case "crate_land": playCrateLand(); break;
       case "powerup_select": playPowerupSelect(); break;
       case "cluster_split": playClusterSplit(); break;
@@ -355,7 +356,13 @@ function playBanalityReveal() {
 
 function playCrateCollect() {
   const c = getCtx();
-  [600, 800, 1000, 1200].forEach((freq, i) => {
+  const variants: number[][] = [
+    [600, 800, 1000, 1200],
+    [500, 700, 900, 1100],
+    [700, 900, 1100, 1400],
+  ];
+  const notes = variants[Math.floor(Math.random() * variants.length)];
+  notes.forEach((freq, i) => {
     const osc = c.createOscillator();
     const gain = c.createGain();
     osc.type = "sine";
@@ -367,6 +374,20 @@ function playCrateCollect() {
     osc.start(t);
     osc.stop(t + 0.12);
   });
+}
+
+function playCrateDestroy() {
+  const c = getCtx();
+  const osc = c.createOscillator();
+  const gain = c.createGain();
+  osc.type = "sawtooth";
+  osc.frequency.setValueAtTime(300, c.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(80, c.currentTime + 0.2);
+  gain.gain.setValueAtTime(0.15, c.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.25);
+  osc.connect(gain).connect(c.destination);
+  osc.start();
+  osc.stop(c.currentTime + 0.25);
 }
 
 function playCrateLand() {
