@@ -647,6 +647,21 @@ export function drawInventoryHUD(p: p5, state: GameState): void {
       p.textSize(4);
       p.text("v", panelX + panelW / 2, panelY + panelH - 1);
     }
+
+    // Hint text for focused item
+    if (state.selectedPowerUp) {
+      const hint = powerUpHint(state.selectedPowerUp);
+      p.fill(200, 200, 150);
+      p.noStroke();
+      p.textSize(4);
+      if (state.currentPlayer === 1) {
+        p.textAlign(p.LEFT, p.TOP);
+        p.text(hint, panelX + 2, panelY + panelH + 3);
+      } else {
+        p.textAlign(p.RIGHT, p.TOP);
+        p.text(hint, panelX + panelW - 2, panelY + panelH + 3);
+      }
+    }
   }
 }
 
@@ -676,6 +691,35 @@ function powerUpDisplayName(type: PowerUpType): string {
     case "construction": return "BUILD";
     case "jump": return "JUMP";
     default: return (type as string).toUpperCase();
+  }
+}
+
+function powerUpHint(type: PowerUpType): string {
+  switch (type) {
+    case "big_banana": return "Hits hard.";
+    case "two_bananas": return "Throw two in a row.";
+    case "ricochet": return "Bounces off walls.";
+    case "wrap_around": return "Goes through walls.";
+    case "cluster_bomb": return "Seems unstable...";
+    case "teleportation": return "Everyone moves.";
+    case "portal": return "Place two, connect them.";
+    case "confetti": return "...what?";
+    case "poison": return "Weakens over time.";
+    case "ice": return "Freezes their aim.";
+    case "mirror": return "Reverses their aim.";
+    case "gravity_flip": return "What goes up...";
+    case "shield": return "Blocks one hit.";
+    case "rubber": return "Bounces off everything.";
+    case "homing": return "Seeks its target.";
+    case "ghost": return "Passes through buildings.";
+    case "giant": return "Feels heavy.";
+    case "boomerang": return "Comes back around.";
+    case "drunk": return "Hard to aim straight.";
+    case "earthquake": return "The ground shakes.";
+    case "demolition": return "Levels a building.";
+    case "construction": return "Builds things up.";
+    case "jump": return "Leap to next building.";
+    default: return "";
   }
 }
 
