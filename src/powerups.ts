@@ -5,6 +5,35 @@ import {
 import p5 from "p5";
 import { playSound } from "./sound";
 
+export function powerUpShortName(type: PowerUpType): string {
+  switch (type) {
+    case "big_banana": return "BIG";
+    case "two_bananas": return "x2";
+    case "ricochet": return "RICOCHET";
+    case "wrap_around": return "WRAP";
+    case "cluster_bomb": return "CLUSTER";
+    case "teleportation": return "TELEPORT";
+    case "portal": return "PORTAL";
+    case "confetti": return "CONFETTI";
+    case "poison": return "POISON";
+    case "ice": return "ICE";
+    case "mirror": return "MIRROR";
+    case "gravity_flip": return "GRAVITY";
+    case "shield": return "SHIELD";
+    case "rubber": return "RUBBER";
+    case "homing": return "HOMING";
+    case "ghost": return "GHOST";
+    case "giant": return "GIANT";
+    case "boomerang": return "BOOMERANG";
+    case "drunk": return "DRUNK";
+    case "earthquake": return "QUAKE";
+    case "demolition": return "DEMOLISH";
+    case "construction": return "BUILD";
+    case "jump": return "JUMP";
+    default: return (type as string).toUpperCase();
+  }
+}
+
 export function trySpawnCrate(state: GameState, wind: number): void {
   if (state.crate !== null) return;
   if (state.isExtraThrow) return;
@@ -51,7 +80,7 @@ export function updateCrateFall(crate: PowerUpCrate): void {
   }
 }
 
-export function collectCrate(state: GameState, playerIdx: 0 | 1): PowerUpType | null {
+export function collectCrate(state: GameState, playerIdx: 0 | 1): PowerUpType | "full" | null {
   if (!state.crate) return null;
   const powerUp = state.crate.powerUp;
   state.crate = null;
@@ -60,8 +89,7 @@ export function collectCrate(state: GameState, playerIdx: 0 | 1): PowerUpType | 
     state.inventory[playerIdx].push(powerUp);
     return powerUp;
   }
-  // Inventory full — crate destroyed, nothing collected
-  return null;
+  return "full";
 }
 
 export function cycleSelectedPowerUp(state: GameState, playerIdx: 0 | 1): void {
