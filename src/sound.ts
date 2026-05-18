@@ -6,7 +6,7 @@ function getCtx(): AudioContext {
   return ctx;
 }
 
-export type SoundName = "throw" | "explosion" | "victory" | "hit" | "aim_tick" | "power_lock" | "taunt_dance" | "taunt_bubble" | "bananality_omen" | "bananality_impact" | "bananality_reveal" | "crate_collect" | "crate_land" | "powerup_select" | "cluster_split" | "confetti_pop" | "teleport_zap" | "poison_hit" | "portal_whoosh" | "portal_place";
+export type SoundName = "throw" | "explosion" | "victory" | "hit" | "aim_tick" | "power_lock" | "taunt_dance" | "taunt_bubble" | "bananality_omen" | "bananality_impact" | "bananality_reveal" | "crate_collect" | "crate_land" | "powerup_select" | "cluster_split" | "confetti_pop" | "teleport_zap" | "poison_hit" | "portal_whoosh" | "portal_place" | "ice_hit" | "mirror_hit" | "gravity_hit" | "shield_deploy" | "shield_break" | "rubber_bounce" | "homing_lock" | "ghost_whoosh" | "giant_thud" | "boomerang_return" | "drunk_wobble" | "earthquake_rumble";
 
 export function playSound(name: SoundName): void {
   try {
@@ -31,6 +31,18 @@ export function playSound(name: SoundName): void {
       case "poison_hit": playPoisonHit(); break;
       case "portal_whoosh": playPortalWhoosh(); break;
       case "portal_place": playPortalPlace(); break;
+      case "ice_hit": playIceHit(); break;
+      case "mirror_hit": playMirrorHit(); break;
+      case "gravity_hit": playGravityHit(); break;
+      case "shield_deploy": playShieldDeploy(); break;
+      case "shield_break": playShieldBreak(); break;
+      case "rubber_bounce": playRubberBounce(); break;
+      case "homing_lock": playHomingLock(); break;
+      case "ghost_whoosh": playGhostWhoosh(); break;
+      case "giant_thud": playGiantThud(); break;
+      case "boomerang_return": playBoomerangReturn(); break;
+      case "drunk_wobble": playDrunkWobble(); break;
+      case "earthquake_rumble": playEarthquakeRumble(); break;
     }
   } catch {
     // Audio not available — fail silently
@@ -486,4 +498,209 @@ function playPortalWhoosh() {
   noise.connect(filter).connect(gain).connect(c.destination);
   noise.start();
   noise.stop(c.currentTime + 0.2);
+}
+
+function playIceHit() {
+  const c = getCtx();
+  const osc = c.createOscillator();
+  const gain = c.createGain();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(1200, c.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(400, c.currentTime + 0.3);
+  gain.gain.setValueAtTime(0.12, c.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.3);
+  osc.connect(gain).connect(c.destination);
+  osc.start();
+  osc.stop(c.currentTime + 0.3);
+}
+
+function playMirrorHit() {
+  const c = getCtx();
+  [800, 600, 800].forEach((freq, i) => {
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    osc.type = "triangle";
+    const t = c.currentTime + i * 0.08;
+    osc.frequency.setValueAtTime(freq, t);
+    gain.gain.setValueAtTime(0.1, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+    osc.connect(gain).connect(c.destination);
+    osc.start(t);
+    osc.stop(t + 0.1);
+  });
+}
+
+function playGravityHit() {
+  const c = getCtx();
+  const osc = c.createOscillator();
+  const gain = c.createGain();
+  osc.type = "sawtooth";
+  osc.frequency.setValueAtTime(400, c.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(100, c.currentTime + 0.4);
+  gain.gain.setValueAtTime(0.12, c.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.4);
+  osc.connect(gain).connect(c.destination);
+  osc.start();
+  osc.stop(c.currentTime + 0.4);
+}
+
+function playShieldDeploy() {
+  const c = getCtx();
+  [400, 600, 800, 1000].forEach((freq, i) => {
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    osc.type = "sine";
+    const t = c.currentTime + i * 0.06;
+    osc.frequency.setValueAtTime(freq, t);
+    gain.gain.setValueAtTime(0.08, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+    osc.connect(gain).connect(c.destination);
+    osc.start(t);
+    osc.stop(t + 0.15);
+  });
+}
+
+function playShieldBreak() {
+  const c = getCtx();
+  const bufferSize = c.sampleRate * 0.3;
+  const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize) * 0.6;
+  }
+  const noise = c.createBufferSource();
+  noise.buffer = buffer;
+  const filter = c.createBiquadFilter();
+  filter.type = "highpass";
+  filter.frequency.setValueAtTime(2000, c.currentTime);
+  const gain = c.createGain();
+  gain.gain.setValueAtTime(0.2, c.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.3);
+  noise.connect(filter).connect(gain).connect(c.destination);
+  noise.start();
+  noise.stop(c.currentTime + 0.3);
+}
+
+function playRubberBounce() {
+  const c = getCtx();
+  const osc = c.createOscillator();
+  const gain = c.createGain();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(200 + Math.random() * 400, c.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(100, c.currentTime + 0.1);
+  gain.gain.setValueAtTime(0.15, c.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.1);
+  osc.connect(gain).connect(c.destination);
+  osc.start();
+  osc.stop(c.currentTime + 0.1);
+}
+
+function playHomingLock() {
+  const c = getCtx();
+  const osc = c.createOscillator();
+  const gain = c.createGain();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(600, c.currentTime);
+  osc.frequency.setValueAtTime(800, c.currentTime + 0.05);
+  osc.frequency.setValueAtTime(600, c.currentTime + 0.1);
+  gain.gain.setValueAtTime(0.08, c.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.15);
+  osc.connect(gain).connect(c.destination);
+  osc.start();
+  osc.stop(c.currentTime + 0.15);
+}
+
+function playGhostWhoosh() {
+  const c = getCtx();
+  const bufferSize = c.sampleRate * 0.3;
+  const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = (Math.random() * 2 - 1) * Math.sin((i / bufferSize) * Math.PI) * 0.3;
+  }
+  const noise = c.createBufferSource();
+  noise.buffer = buffer;
+  const filter = c.createBiquadFilter();
+  filter.type = "bandpass";
+  filter.frequency.setValueAtTime(800, c.currentTime);
+  const gain = c.createGain();
+  gain.gain.setValueAtTime(0.1, c.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.3);
+  noise.connect(filter).connect(gain).connect(c.destination);
+  noise.start();
+  noise.stop(c.currentTime + 0.3);
+}
+
+function playGiantThud() {
+  const c = getCtx();
+  const osc = c.createOscillator();
+  const gain = c.createGain();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(60, c.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(30, c.currentTime + 0.3);
+  gain.gain.setValueAtTime(0.25, c.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.35);
+  osc.connect(gain).connect(c.destination);
+  osc.start();
+  osc.stop(c.currentTime + 0.35);
+}
+
+function playBoomerangReturn() {
+  const c = getCtx();
+  const osc = c.createOscillator();
+  const gain = c.createGain();
+  osc.type = "triangle";
+  osc.frequency.setValueAtTime(300, c.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(600, c.currentTime + 0.15);
+  osc.frequency.exponentialRampToValueAtTime(300, c.currentTime + 0.3);
+  gain.gain.setValueAtTime(0.12, c.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.3);
+  osc.connect(gain).connect(c.destination);
+  osc.start();
+  osc.stop(c.currentTime + 0.3);
+}
+
+function playDrunkWobble() {
+  const c = getCtx();
+  const osc = c.createOscillator();
+  const gain = c.createGain();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(300 + Math.random() * 200, c.currentTime);
+  osc.frequency.linearRampToValueAtTime(200 + Math.random() * 200, c.currentTime + 0.1);
+  gain.gain.setValueAtTime(0.06, c.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.1);
+  osc.connect(gain).connect(c.destination);
+  osc.start();
+  osc.stop(c.currentTime + 0.1);
+}
+
+function playEarthquakeRumble() {
+  const c = getCtx();
+  const osc = c.createOscillator();
+  const gain = c.createGain();
+  osc.type = "sawtooth";
+  osc.frequency.setValueAtTime(40, c.currentTime);
+  osc.frequency.linearRampToValueAtTime(60, c.currentTime + 0.3);
+  osc.frequency.linearRampToValueAtTime(30, c.currentTime + 0.5);
+  gain.gain.setValueAtTime(0.2, c.currentTime);
+  gain.gain.linearRampToValueAtTime(0.25, c.currentTime + 0.2);
+  gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.5);
+  osc.connect(gain).connect(c.destination);
+  osc.start();
+  osc.stop(c.currentTime + 0.5);
+  // Cracking noise overlay
+  const bufferSize = c.sampleRate * 0.3;
+  const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize) * 0.4;
+  }
+  const noise = c.createBufferSource();
+  noise.buffer = buffer;
+  const g2 = c.createGain();
+  g2.gain.setValueAtTime(0.15, c.currentTime + 0.1);
+  g2.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.4);
+  noise.connect(g2).connect(c.destination);
+  noise.start(c.currentTime + 0.1);
+  noise.stop(c.currentTime + 0.4);
 }
