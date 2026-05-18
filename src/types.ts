@@ -39,6 +39,14 @@ export interface GorillaCostume {
   accessory?: "sunglasses" | "bowtie" | "scar" | "redeyes";
 }
 
+export interface GorillaTints {
+  poison?: boolean;
+  ice?: boolean;
+  mirror?: boolean;
+  gravity?: boolean;
+  shield?: boolean;
+}
+
 export interface Projectile {
   startX: number;
   startY: number;
@@ -54,6 +62,10 @@ export interface Projectile {
   splitTimer?: number;        // millis() timestamp for cluster bomb
   explosionRadius?: number;   // override for big banana / sub-projectiles
   powerUpType?: PowerUpType;
+  boomerangReturned?: boolean;
+  rubberBouncesRemaining?: number;
+  drunkPerpX?: number;
+  drunkPerpY?: number;
 }
 
 export type GamePhase =
@@ -73,7 +85,9 @@ export type TimeOfDay = "day" | "night";
 export type CityTheme = "classic" | "neon" | "brick" | "pastel";
 
 export type PowerUpType = "big_banana" | "two_bananas" | "ricochet" | "wrap_around"
-  | "cluster_bomb" | "teleportation" | "portal" | "confetti" | "poison";
+  | "cluster_bomb" | "teleportation" | "portal" | "confetti" | "poison"
+  | "ice" | "mirror" | "gravity_flip" | "shield" | "rubber" | "homing"
+  | "ghost" | "giant" | "boomerang" | "drunk" | "earthquake";
 
 export interface PowerUpCrate {
   x: number;
@@ -126,4 +140,9 @@ export interface GameState {
   portals: [Portal | null, Portal | null];
   activeSubProjectiles: Projectile[];
   poisonTurns: [number, number];
+  iceTurns: [number, number];
+  mirrorTurns: [number, number];
+  gravityTurns: [number, number];
+  shield: [boolean, boolean];
+  earthquakeTimer: number;
 }

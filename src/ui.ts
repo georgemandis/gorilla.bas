@@ -472,6 +472,7 @@ function powerUpDisplayName(type: PowerUpType): string {
     case "portal": return "PORTAL";
     case "confetti": return "CONFETTI";
     case "poison": return "POISON";
+    default: return (type as string).toUpperCase();
   }
 }
 
@@ -515,6 +516,10 @@ function drawPowerUpIcon(p: p5, x: number, y: number, size: number, type: PowerU
       break;
     case "poison":
       p.fill(0, 200, 0);
+      p.circle(x + size / 2, y + size / 2, size);
+      break;
+    default:
+      p.fill(150);
       p.circle(x + size / 2, y + size / 2, size);
       break;
   }

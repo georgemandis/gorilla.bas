@@ -68,6 +68,11 @@ function createInitialState(): GameState {
     portals: [null, null],
     activeSubProjectiles: [],
     poisonTurns: [0, 0],
+    iceTurns: [0, 0],
+    mirrorTurns: [0, 0],
+    gravityTurns: [0, 0],
+    shield: [false, false],
+    earthquakeTimer: 0,
   };
 }
 
@@ -365,6 +370,9 @@ const sketch = (p: p5) => {
     state.isExtraThrow = false;
     state.selectedPowerUp = null;
     state.selectedSlotIndex = -1;
+    state.shield = [false, false];
+    state.earthquakeTimer = 0;
+    // iceTurns, mirrorTurns, gravityTurns persist across rounds (like poisonTurns)
     // TODO: remove after testing — give both players all power-ups each round
     state.inventory[0] = [...ALL_POWERUP_TYPES];
     state.inventory[1] = [...ALL_POWERUP_TYPES];
@@ -933,6 +941,11 @@ const sketch = (p: p5) => {
     state.isExtraThrow = false;
     state.activeSubProjectiles = [];
     state.portals = [null, null];
+    state.iceTurns = [0, 0];
+    state.mirrorTurns = [0, 0];
+    state.gravityTurns = [0, 0];
+    state.shield = [false, false];
+    state.earthquakeTimer = 0;
     confettiParticles = [];
     playSound("bananality_omen");
   }
