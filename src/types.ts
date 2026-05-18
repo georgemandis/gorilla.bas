@@ -153,6 +153,7 @@ export interface GameState {
   inventory: [PowerUpType[], PowerUpType[]];
   selectedPowerUp: PowerUpType | null;
   selectedSlotIndex: number;          // -1 = no selection, 0-2 = inventory slot
+  inventoryOpen: boolean;
   extraThrowRemaining: boolean;
   isExtraThrow: boolean;
   portals: [Portal | null, Portal | null];

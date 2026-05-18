@@ -34,7 +34,7 @@ import {
 import { randomName } from "./names";
 import { getCostume } from "./costumes";
 import { playSound, startPowerHum, updatePowerHum, stopPowerHum } from "./sound";
-import { trySpawnCrate, updateCrateFall, drawCrate, collectCrate, cycleSelectedPowerUp, consumeSelectedPowerUp } from "./powerups";
+import { trySpawnCrate, updateCrateFall, drawCrate, collectCrate, consumeSelectedPowerUp } from "./powerups";
 import { applyPowerUpToProjectile, handleRicochet, handleWrapAround, splitClusterBomb, checkPortalEntry, applyHomingNudge, handleRubberBounce, applyDrunkWobble, handleBoomerangReturn } from "./powerup-behaviors";
 
 function createInitialState(): GameState {
@@ -71,6 +71,7 @@ function createInitialState(): GameState {
     inventory: [[], []],
     selectedPowerUp: null,
     selectedSlotIndex: -1,
+    inventoryOpen: false,
     extraThrowRemaining: false,
     isExtraThrow: false,
     portals: [null, null],
@@ -399,6 +400,7 @@ const sketch = (p: p5) => {
     state.isExtraThrow = false;
     state.selectedPowerUp = null;
     state.selectedSlotIndex = -1;
+    state.inventoryOpen = false;
     state.hp = [state.maxHP, state.maxHP];
     state.shield = [false, false];
     state.earthquakeTimer = 0;
@@ -427,26 +429,69 @@ const sketch = (p: p5) => {
       playSound("aim_tick");
     }
 
-    // B button cycles power-up selection (active player only)
+    const playerIdx = (state.currentPlayer - 1) as 0 | 1;
     const prevB = state.currentPlayer === 1 ? prevB1 : prevB2;
-    if (input.b && !prevB) {
-      cycleSelectedPowerUp(state, (state.currentPlayer - 1) as 0 | 1);
-      playSound("powerup_select");
-    }
-
-    // A button pressed (edge detection)
     const prevA = state.currentPlayer === 1 ? prevA1 : prevA2;
-    if (input.a && !prevA) {
-      state.phase = "power";
-      state.powerMeterValue = 0;
-      state.powerMeterDirection = 1;
-      state.powerDeadZoneTimer = p.millis();
-      playSound("power_lock");
-      startPowerHum();
 
-      // Throwing arm animation
-      const gorilla = state.gorillas[state.currentPlayer - 1];
-      gorilla.armState = state.currentPlayer === 1 ? "right_up" : "left_up";
+    if (state.inventoryOpen) {
+      // Inventory HUD is open — dpad up/down navigates, B confirms, A cancels
+      const inv = state.inventory[playerIdx];
+      const curUp = input.dpadUp;
+      const curDown = input.dpadDown;
+
+      if (curUp && !prevDpadUp && inv.length > 0) {
+        state.selectedSlotIndex = Math.max(0, state.selectedSlotIndex - 1);
+        state.selectedPowerUp = inv[state.selectedSlotIndex];
+        playSound("powerup_select");
+      }
+      if (curDown && !prevDpadDown && inv.length > 0) {
+        state.selectedSlotIndex = Math.min(inv.length - 1, state.selectedSlotIndex + 1);
+        state.selectedPowerUp = inv[state.selectedSlotIndex];
+        playSound("powerup_select");
+      }
+      prevDpadUp = curUp;
+      prevDpadDown = curDown;
+
+      // B confirms selection and closes
+      if (input.b && !prevB) {
+        state.inventoryOpen = false;
+        playSound("powerup_select");
+      }
+
+      // A cancels — deselect and close
+      if (input.a && !prevA) {
+        state.selectedPowerUp = null;
+        state.selectedSlotIndex = -1;
+        state.inventoryOpen = false;
+      }
+    } else {
+      // B opens inventory (if player has items)
+      if (input.b && !prevB) {
+        const inv = state.inventory[playerIdx];
+        if (inv.length > 0) {
+          state.inventoryOpen = true;
+          // Select first item if nothing selected
+          if (state.selectedSlotIndex === -1) {
+            state.selectedSlotIndex = 0;
+            state.selectedPowerUp = inv[0];
+          }
+          playSound("powerup_select");
+        }
+      }
+
+      // A button pressed — launch (edge detection)
+      if (input.a && !prevA) {
+        state.phase = "power";
+        state.powerMeterValue = 0;
+        state.powerMeterDirection = 1;
+        state.powerDeadZoneTimer = p.millis();
+        playSound("power_lock");
+        startPowerHum();
+
+        // Throwing arm animation
+        const gorilla = state.gorillas[state.currentPlayer - 1];
+        gorilla.armState = state.currentPlayer === 1 ? "right_up" : "left_up";
+      }
     }
   }
 
@@ -1361,6 +1406,7 @@ const sketch = (p: p5) => {
     konamiPlayer = null;
     state.selectedPowerUp = null;
     state.selectedSlotIndex = -1;
+    state.inventoryOpen = false;
     state.extraThrowRemaining = false;
     state.isExtraThrow = false;
     state.activeSubProjectiles = [];
@@ -1792,6 +1838,7 @@ const sketch = (p: p5) => {
     state.currentPlayer = state.currentPlayer === 1 ? 2 : 1;
     state.selectedPowerUp = null;
     state.selectedSlotIndex = -1;
+    state.inventoryOpen = false;
     state.isExtraThrow = false;
   }
 

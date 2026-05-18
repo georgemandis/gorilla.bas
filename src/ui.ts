@@ -496,7 +496,7 @@ export function drawInventoryHUD(p: p5, state: GameState): void {
   }
 
   // Selected power-up overlay panel
-  if (state.selectedPowerUp && (state.phase === "aim" || state.phase === "power")) {
+  if (state.inventoryOpen) {
     const playerIdx = (state.currentPlayer - 1) as 0 | 1;
     const inv = state.inventory[playerIdx];
     if (inv.length === 0) return;
