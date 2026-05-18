@@ -12,7 +12,7 @@ import {
   TIME_OF_DAY_OPTIONS,
   WINDOW_COLORS, NEON_WINDOW_COLORS,
   SKY_COLORS, GROUND_COLORS,
-  POISON_TURNS, POISON_POWER_CAP,
+  POISON_TURNS, POISON_POWER_CAP, ICE_TURNS, MIRROR_TURNS, GRAVITY_TURNS,
   ALL_POWERUP_TYPES, GIANT_POWER_MULT,
 } from "./config";
 import { getPlayerInput, getSystemInput } from "./input";
@@ -389,8 +389,8 @@ const sketch = (p: p5) => {
   }
 
   function updateAim(input: ReturnType<typeof getPlayerInput>) {
-    // Spinner rotates angle
-    if (input.spinnerDelta !== 0) {
+    // Spinner rotates angle (unless frozen by ice)
+    if (state.iceTurns[state.currentPlayer - 1] <= 0 && input.spinnerDelta !== 0) {
       state.angle = (state.angle + input.spinnerDelta + 360) % 360;
       playSound("aim_tick");
     }
@@ -540,6 +540,10 @@ const sketch = (p: p5) => {
     advanceProjectile(state.projectile);
     bananaRotation = (bananaRotation + 0.3) % (Math.PI * 2);
 
+    // Gravity flip: use negative gravity for position calculation
+    const playerIdx = (state.currentPlayer - 1) as 0 | 1;
+    const effectiveGravity = state.gravityTurns[playerIdx] > 0 ? -state.gravity : state.gravity;
+
     // Check cluster bomb split timer
     if (state.projectile.splitTimer && p.millis() >= state.projectile.splitTimer) {
       const splitPos = getProjectilePositionWithGravity(state.projectile, state.wind, state.gravity);
@@ -553,11 +557,11 @@ const sketch = (p: p5) => {
       return;
     }
 
-    const pos = getProjectilePositionWithGravity(state.projectile, state.wind, state.gravity);
+    const pos = getProjectilePositionWithGravity(state.projectile, state.wind, effectiveGravity);
 
     // Check if banana enters a portal (only for non-portal bananas when both portals exist)
     if (state.portals[0] && state.portals[1] && state.projectile.powerUpType !== "portal") {
-      const portalResult = checkPortalEntry(state.projectile, pos, state.portals, state.gravity);
+      const portalResult = checkPortalEntry(state.projectile, pos, state.portals, effectiveGravity);
       if (portalResult) {
         state.projectile = portalResult;
         playSound("portal_whoosh");
@@ -570,7 +574,7 @@ const sketch = (p: p5) => {
     // Portal banana — suppress damage, place portal
     if (state.projectile?.powerUpType === "portal") {
       if (result.type === "miss") {
-        const pos2 = getProjectilePositionWithGravity(state.projectile, state.wind, state.gravity);
+        const pos2 = getProjectilePositionWithGravity(state.projectile, state.wind, effectiveGravity);
         const isEdgeMiss = pos2.x < 0 || pos2.x > WIDTH;
 
         if (isEdgeMiss) {
@@ -591,7 +595,7 @@ const sketch = (p: p5) => {
       }
       if (result.type === "building" || result.type === "gorilla" || result.type === "crate") {
         // Place portal at impact point, no damage
-        const pos2 = getProjectilePositionWithGravity(state.projectile, state.wind, state.gravity);
+        const pos2 = getProjectilePositionWithGravity(state.projectile, state.wind, effectiveGravity);
         placePortal(state, pos2.x < WIDTH / 2 ? "left" : "right", pos2.x, pos2.y);
         state.projectile = null;
         playSound("portal_place");
@@ -608,14 +612,14 @@ const sketch = (p: p5) => {
         state.sunShocked = true;
         break;
       case "miss": {
-        const pos2 = getProjectilePositionWithGravity(state.projectile!, state.wind, state.gravity);
+        const pos2 = getProjectilePositionWithGravity(state.projectile!, state.wind, effectiveGravity);
         const isEdgeMiss = pos2.x < 0 || pos2.x > WIDTH || pos2.y < 0;
         const isGroundMiss = pos2.y > BOTTOM_LINE;
 
         if (isEdgeMiss && !isGroundMiss) {
           // Try ricochet
           if (state.projectile!.bouncesRemaining) {
-            const bounced = handleRicochet(state.projectile!, pos2.x, pos2.y, state.wind, state.gravity);
+            const bounced = handleRicochet(state.projectile!, pos2.x, pos2.y, state.wind, effectiveGravity);
             if (bounced) {
               state.projectile = bounced;
               playSound("aim_tick");
@@ -625,7 +629,7 @@ const sketch = (p: p5) => {
 
           // Try wrap-around
           if (state.projectile!.wrapsRemaining) {
-            const wrapped = handleWrapAround(state.projectile!, pos2.x, pos2.y, state.wind, state.gravity);
+            const wrapped = handleWrapAround(state.projectile!, pos2.x, pos2.y, state.wind, effectiveGravity);
             if (wrapped) {
               state.projectile = wrapped;
               return;
@@ -718,6 +722,42 @@ const sketch = (p: p5) => {
           // Thrower dances
           triggerDance(state.currentPlayer);
           // End turn via explosion phase (but no scoring)
+          state.explosionTimer = p.millis();
+          state.lastHitPlayer = null;
+          state.phase = "explosion";
+          break;
+        }
+        if (state.projectile?.powerUpType === "ice") {
+          const vidx = (result.gorilla.playerNum - 1) as 0 | 1;
+          state.iceTurns[vidx] = ICE_TURNS;
+          state.projectile = null;
+          playSound("ice_hit");
+          explosionX = pos.x;
+          explosionY = pos.y;
+          state.explosionTimer = p.millis();
+          state.lastHitPlayer = null;
+          state.phase = "explosion";
+          break;
+        }
+        if (state.projectile?.powerUpType === "mirror") {
+          const vidx = (result.gorilla.playerNum - 1) as 0 | 1;
+          state.mirrorTurns[vidx] = MIRROR_TURNS;
+          state.projectile = null;
+          playSound("mirror_hit");
+          explosionX = pos.x;
+          explosionY = pos.y;
+          state.explosionTimer = p.millis();
+          state.lastHitPlayer = null;
+          state.phase = "explosion";
+          break;
+        }
+        if (state.projectile?.powerUpType === "gravity_flip") {
+          const vidx = (result.gorilla.playerNum - 1) as 0 | 1;
+          state.gravityTurns[vidx] = GRAVITY_TURNS;
+          state.projectile = null;
+          playSound("gravity_hit");
+          explosionX = pos.x;
+          explosionY = pos.y;
           state.explosionTimer = p.millis();
           state.lastHitPlayer = null;
           state.phase = "explosion";
@@ -1561,7 +1601,9 @@ const sketch = (p: p5) => {
 
   function drawBanana(p: p5) {
     if (!state.projectile) return;
-    const pos = getProjectilePositionWithGravity(state.projectile, state.wind, state.gravity);
+    const playerGravIdx = (state.currentPlayer - 1) as 0 | 1;
+    const drawGravity = state.gravityTurns[playerGravIdx] > 0 ? -state.gravity : state.gravity;
+    const pos = getProjectilePositionWithGravity(state.projectile, state.wind, drawGravity);
 
     // Only draw if reasonably on screen
     if (pos.y < -50 || pos.x < -10 || pos.x > WIDTH + 10) return;
