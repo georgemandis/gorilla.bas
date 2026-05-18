@@ -386,7 +386,7 @@ export function drawTitleScreen(p: p5): void {
   p.textSize(12);
   p.textAlign(p.CENTER, p.CENTER);
   p.noStroke();
-  p.text("GORILLAS.BAS", WIDTH / 2, HEIGHT / 3);
+  p.text("GORILLA.BAS++", WIDTH / 2, HEIGHT / 3);
 
   p.fill(180);
   p.textSize(6);
@@ -423,28 +423,28 @@ export function drawConfigScreen(
   p.textSize(10);
   p.textAlign(p.CENTER, p.TOP);
   p.noStroke();
-  p.text("GORILLAS.BAS", WIDTH / 2, 15);
+  p.text("GORILLA.BAS++", WIDTH / 2, 15);
 
   const startY = 45;
   const lineH = 24;
 
   p.textSize(6);
   p.textAlign(p.LEFT, p.TOP);
-
   p.fill(100, 150, 255);
   p.text(`P1: ${state.playerNames[0]}`, 30, startY);
-  p.fill(80, 80, 120);
-  p.textSize(5);
-  p.text("(spin to re-roll)", 30, startY + 12);
 
-  p.textSize(6);
+  p.textAlign(p.RIGHT, p.TOP);
   p.fill(255, 100, 100);
-  p.text(`P2: ${state.playerNames[1]}`, 30, startY + lineH);
+  p.text(`P2: ${state.playerNames[1]}`, WIDTH - 30, startY);
+
   p.fill(80, 80, 120);
   p.textSize(5);
-  p.text("(spin to re-roll)", 30, startY + lineH + 12);
+  p.textAlign(p.CENTER, p.TOP);
+  p.text("(spin to re-roll)", WIDTH / 2, startY + 12);
 
-  const settingsY = startY + lineH * 2.5;
+  p.textAlign(p.LEFT, p.TOP);
+
+  const settingsY = startY + lineH * 1.5;
   const settings = [
     { label: "POINTS TO WIN", value: String(state.targetScore) },
     { label: "GRAVITY", value: state.gravityPreset.toUpperCase() },
@@ -533,6 +533,9 @@ function powerUpDisplayName(type: PowerUpType): string {
     case "boomerang": return "BOOMERANG";
     case "drunk": return "DRUNK";
     case "earthquake": return "EARTHQUAKE";
+    case "demolition": return "DEMOLITION";
+    case "construction": return "BUILD";
+    case "jump": return "JUMP";
     default: return (type as string).toUpperCase();
   }
 }
@@ -624,6 +627,20 @@ function drawPowerUpIcon(p: p5, x: number, y: number, size: number, type: PowerU
     case "earthquake":
       p.fill(139, 90, 43);
       p.circle(x + size / 2, y + size / 2, size);
+      break;
+    case "demolition":
+      p.fill(40, 40, 40);
+      p.circle(x + size / 2, y + size / 2, size);
+      p.fill(80, 80, 80);
+      p.circle(x + size / 2, y + size / 2, size * 0.4);
+      break;
+    case "construction":
+      p.fill(50, 200, 50);
+      p.circle(x + size / 2, y + size / 2, size);
+      break;
+    case "jump":
+      p.fill(255, 255, 0);
+      p.triangle(x + size / 2, y, x, y + size, x + size, y + size);
       break;
     default:
       p.fill(150);

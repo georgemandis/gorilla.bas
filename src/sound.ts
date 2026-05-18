@@ -6,7 +6,7 @@ function getCtx(): AudioContext {
   return ctx;
 }
 
-export type SoundName = "throw" | "explosion" | "victory" | "hit" | "aim_tick" | "power_lock" | "taunt_dance" | "taunt_bubble" | "bananality_omen" | "bananality_impact" | "bananality_reveal" | "crate_collect" | "crate_land" | "powerup_select" | "cluster_split" | "confetti_pop" | "teleport_zap" | "poison_hit" | "portal_whoosh" | "portal_place" | "ice_hit" | "mirror_hit" | "gravity_hit" | "shield_deploy" | "shield_break" | "rubber_bounce" | "homing_lock" | "ghost_whoosh" | "giant_thud" | "boomerang_return" | "drunk_wobble" | "earthquake_rumble";
+export type SoundName = "throw" | "explosion" | "victory" | "hit" | "aim_tick" | "power_lock" | "taunt_dance" | "taunt_bubble" | "bananality_omen" | "bananality_impact" | "bananality_reveal" | "crate_collect" | "crate_land" | "powerup_select" | "cluster_split" | "confetti_pop" | "teleport_zap" | "poison_hit" | "portal_whoosh" | "portal_place" | "ice_hit" | "mirror_hit" | "gravity_hit" | "shield_deploy" | "shield_break" | "rubber_bounce" | "homing_lock" | "ghost_whoosh" | "giant_thud" | "boomerang_return" | "drunk_wobble" | "earthquake_rumble" | "demolition";
 
 export function playSound(name: SoundName): void {
   try {
@@ -43,6 +43,7 @@ export function playSound(name: SoundName): void {
       case "boomerang_return": playBoomerangReturn(); break;
       case "drunk_wobble": playDrunkWobble(); break;
       case "earthquake_rumble": playEarthquakeRumble(); break;
+      case "demolition": playDemolition(); break;
     }
   } catch {
     // Audio not available — fail silently
@@ -703,4 +704,35 @@ function playEarthquakeRumble() {
   noise.connect(g2).connect(c.destination);
   noise.start(c.currentTime + 0.1);
   noise.stop(c.currentTime + 0.4);
+}
+
+function playDemolition() {
+  const c = getCtx();
+  const osc = c.createOscillator();
+  const gain = c.createGain();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(80, c.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(25, c.currentTime + 0.5);
+  gain.gain.setValueAtTime(0.3, c.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.5);
+  osc.connect(gain).connect(c.destination);
+  osc.start();
+  osc.stop(c.currentTime + 0.5);
+  const bufferSize = c.sampleRate * 0.4;
+  const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize) * 0.5;
+  }
+  const noise = c.createBufferSource();
+  noise.buffer = buffer;
+  const filter = c.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(500, c.currentTime);
+  const g2 = c.createGain();
+  g2.gain.setValueAtTime(0.2, c.currentTime + 0.1);
+  g2.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.5);
+  noise.connect(filter).connect(g2).connect(c.destination);
+  noise.start(c.currentTime + 0.05);
+  noise.stop(c.currentTime + 0.5);
 }

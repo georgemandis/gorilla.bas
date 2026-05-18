@@ -817,6 +817,26 @@ const sketch = (p: p5) => {
           }
           break;
         }
+        if (projType === "demolition") {
+          const hitBuildingIdx = state.buildings.indexOf(result.building);
+          result.building.height = 0;
+          result.building.y = BOTTOM_LINE;
+          result.building.windows = [];
+          result.building.damage = [];
+          if (state.crate && state.crate.buildingIdx === hitBuildingIdx) {
+            state.crate = null;
+          }
+          explosionX = pos.x;
+          explosionY = pos.y;
+          activeExplosionRadius = EXPLOSION_RADIUS;
+          state.projectile = null;
+          state.explosionTimer = p.millis();
+          state.lastHitPlayer = null;
+          state.phase = "explosion";
+          playSound("demolition");
+          playSound("explosion");
+          break;
+        }
         explosionX = pos.x;
         explosionY = pos.y;
         const buildingExpRadius = state.projectile!.explosionRadius ?? EXPLOSION_RADIUS;
@@ -1843,6 +1863,16 @@ const sketch = (p: p5) => {
         break;
       case "earthquake":
         p.fill(139, 90, 43);
+        p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        break;
+      case "demolition":
+        p.fill(40, 40, 40);
+        p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+        p.fill(80, 80, 80);
+        p.circle(0, 1, 3 * scale);
+        break;
+      case "construction":
+        p.fill(50, 200, 50);
         p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
         break;
       case "ice":
