@@ -13,7 +13,7 @@ import {
   WINDOW_COLORS, NEON_WINDOW_COLORS,
   SKY_COLORS, GROUND_COLORS,
   POISON_TURNS, POISON_POWER_CAP, ICE_TURNS, MIRROR_TURNS, GRAVITY_TURNS,
-  ALL_POWERUP_TYPES, GIANT_POWER_MULT, GIANT_HITBOX_MULT,
+  ALL_POWERUP_TYPES, GIANT_POWER_MULT, GIANT_HITBOX_MULT, HP_OPTIONS,
   EARTHQUAKE_SHAKE_MS,
 } from "./config";
 import { getPlayerInput, getSystemInput } from "./input";
@@ -24,7 +24,7 @@ import { drawGorilla } from "./gorilla";
 import {
   drawScores, drawAngleIndicator, drawActivePlayerIndicator, drawPowerMeter,
   drawSun, drawEvilSun, drawExplosion, drawTitleScreen, drawConfigScreen,
-  drawGameOver, drawInventoryHUD, drawPortals,
+  drawGameOver, drawInventoryHUD, drawPortals, drawHP,
 } from "./ui";
 import { randomName } from "./names";
 import { getCostume } from "./costumes";
@@ -45,6 +45,8 @@ function createInitialState(): GameState {
     gravity: 9.8,
     scores: [0, 0],
     targetScore: 3,
+    maxHP: 1,
+    hp: [1, 1],
     gravityPreset: "earth",
     timeOfDay: "day",
     cityTheme: "classic",
@@ -317,7 +319,7 @@ const sketch = (p: p5) => {
     prevDpadRight = curRight;
 
     if (dpad === "up") configCursor = Math.max(0, configCursor - 1);
-    if (dpad === "down") configCursor = Math.min(3, configCursor + 1);
+    if (dpad === "down") configCursor = Math.min(4, configCursor + 1);
 
     if (dpad === "left" || dpad === "right") {
       const dir = dpad === "right" ? 1 : -1;
@@ -338,6 +340,10 @@ const sketch = (p: p5) => {
         const idx = CITY_THEME_OPTIONS.indexOf(state.cityTheme);
         const newIdx = (idx + dir + CITY_THEME_OPTIONS.length) % CITY_THEME_OPTIONS.length;
         state.cityTheme = CITY_THEME_OPTIONS[newIdx];
+      } else if (configCursor === 4) {
+        const idx = HP_OPTIONS.indexOf(state.maxHP);
+        const newIdx = (idx + dir + HP_OPTIONS.length) % HP_OPTIONS.length;
+        state.maxHP = HP_OPTIONS[newIdx];
       }
     }
 
@@ -379,6 +385,7 @@ const sketch = (p: p5) => {
     state.isExtraThrow = false;
     state.selectedPowerUp = null;
     state.selectedSlotIndex = -1;
+    state.hp = [state.maxHP, state.maxHP];
     state.shield = [false, false];
     state.earthquakeTimer = 0;
     // iceTurns, mirrorTurns, gravityTurns persist across rounds (like poisonTurns)
@@ -622,7 +629,7 @@ const sketch = (p: p5) => {
 
     const collisionOptions = {
       skipBuildings: state.projectile.powerUpType === "ghost",
-      gorillaHitboxMult: state.projectile.powerUpType === "giant" ? GIANT_HITBOX_MULT : 1,
+      gorillaHitboxMult: state.projectile.powerUpType === "giant" && state.projectile.t > 1.0 ? GIANT_HITBOX_MULT : 1,
     };
     const result = checkCollision(pos.x, pos.y, state.projectile.t, state.buildings, state.gorillas, state.crate, collisionOptions);
 
@@ -850,7 +857,7 @@ const sketch = (p: p5) => {
           explosionX = pos.x;
           explosionY = pos.y;
           state.explosionTimer = p.millis();
-          state.lastHitPlayer = null;
+          state.lastHitPlayer = result.gorilla.playerNum;
           state.phase = "explosion";
           break;
         }
@@ -862,7 +869,7 @@ const sketch = (p: p5) => {
           explosionX = pos.x;
           explosionY = pos.y;
           state.explosionTimer = p.millis();
-          state.lastHitPlayer = null;
+          state.lastHitPlayer = result.gorilla.playerNum;
           state.phase = "explosion";
           break;
         }
@@ -874,7 +881,7 @@ const sketch = (p: p5) => {
           explosionX = pos.x;
           explosionY = pos.y;
           state.explosionTimer = p.millis();
-          state.lastHitPlayer = null;
+          state.lastHitPlayer = result.gorilla.playerNum;
           state.phase = "explosion";
           break;
         }
@@ -886,7 +893,7 @@ const sketch = (p: p5) => {
           explosionX = pos.x;
           explosionY = pos.y;
           state.explosionTimer = p.millis();
-          state.lastHitPlayer = null;  // no scoring
+          state.lastHitPlayer = result.gorilla.playerNum;
           state.phase = "explosion";
           break;
         }
@@ -988,22 +995,32 @@ const sketch = (p: p5) => {
 
     if (elapsed > totalDuration) {
       if (state.lastHitPlayer !== null) {
-        // A gorilla was hit — score point
-        if (state.lastHitPlayer === state.currentPlayer) {
-          // Self-hit: opponent scores and auto-taunts
-          const opponentIdx = state.currentPlayer === 1 ? 1 : 0;
-          state.scores[opponentIdx]++;
-          const opponent: 1 | 2 = state.currentPlayer === 1 ? 2 : 1;
-          triggerDance(opponent);
-          triggerBubble(opponent, SELF_HIT_TAUNTS);
+        // A gorilla was hit — decrement HP
+        const hitIdx = (state.lastHitPlayer - 1) as 0 | 1;
+        state.hp[hitIdx] = Math.max(0, state.hp[hitIdx] - 1);
+
+        if (state.hp[hitIdx] <= 0) {
+          // Gorilla knocked out — score point
+          if (state.lastHitPlayer === state.currentPlayer) {
+            // Self-hit KO: opponent scores and auto-taunts
+            const opponentIdx = state.currentPlayer === 1 ? 1 : 0;
+            state.scores[opponentIdx]++;
+            const opponent: 1 | 2 = state.currentPlayer === 1 ? 2 : 1;
+            triggerDance(opponent);
+            triggerBubble(opponent, SELF_HIT_TAUNTS);
+          } else {
+            // Hit opponent KO: thrower scores
+            state.scores[state.currentPlayer - 1]++;
+          }
+          state.victoryTimer = p.millis();
+          state.phase = "victory";
+          loserFallOffset = 0;
+          playSound("victory");
         } else {
-          // Hit opponent: thrower scores
-          state.scores[state.currentPlayer - 1]++;
+          // Gorilla survived — continue round
+          playSound("hit");
+          resolveThrowEnd();
         }
-        state.victoryTimer = p.millis();
-        state.phase = "victory";
-        loserFallOffset = 0;
-        playSound("victory");
       } else {
         // Building hit — resolve throw
         resolveThrowEnd();
@@ -1649,6 +1666,7 @@ const sketch = (p: p5) => {
       }
     }
 
+    drawHP(p, state);
     drawTauntBubble(p);
     drawSun(p, state.sunShocked, state.timeOfDay);
     drawScores(p, state);

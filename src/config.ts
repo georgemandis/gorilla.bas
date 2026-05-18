@@ -83,6 +83,7 @@ export const MAX_BUILDING_WIDTH = 50;
 
 // Target scores
 export const TARGET_SCORE_OPTIONS = [1, 3, 5, 7];
+export const HP_OPTIONS = [1, 2, 3, 5, 7, 9];
 export const GRAVITY_PRESET_OPTIONS: GravityPreset[] = ["moon", "earth", "jupiter"];
 export const TIME_OF_DAY_OPTIONS: TimeOfDay[] = ["day", "night"];
 
@@ -114,7 +115,7 @@ export const HOMING_NUDGE = 0.3;
 export const DRUNK_WOBBLE_AMP = 15;
 export const GIANT_POWER_MULT = 0.5;
 export const GIANT_EXPLOSION_MULT = 3;
-export const GIANT_HITBOX_MULT = 3;
+export const GIANT_HITBOX_MULT = 2;
 export const EARTHQUAKE_SHAKE_MS = 500;
 export const ALL_POWERUP_TYPES: PowerUpType[] = [
   "big_banana", "two_bananas", "ricochet", "wrap_around",

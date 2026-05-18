@@ -450,6 +450,7 @@ export function drawConfigScreen(
     { label: "GRAVITY", value: state.gravityPreset.toUpperCase() },
     { label: "TIME", value: state.timeOfDay.toUpperCase() },
     { label: "CITY", value: state.cityTheme.toUpperCase() },
+    { label: "GORILLA HP", value: String(state.maxHP) },
   ];
 
   p.textSize(6);
@@ -628,6 +629,37 @@ function drawPowerUpIcon(p: p5, x: number, y: number, size: number, type: PowerU
       p.fill(150);
       p.circle(x + size / 2, y + size / 2, size);
       break;
+  }
+}
+
+export function drawHP(p: p5, state: GameState): void {
+  if (state.maxHP <= 1) return; // Don't show hearts in classic 1-HP mode
+
+  for (let pi = 0; pi < 2; pi++) {
+    const gorilla = state.gorillas[pi];
+    const centerX = gorilla.x + GORILLA_WIDTH / 2;
+    const startY = gorilla.y - 8;
+    const hp = state.hp[pi];
+    const maxHP = state.maxHP;
+    const heartSize = 4;
+    const spacing = heartSize + 1;
+    const totalWidth = maxHP * spacing - 1;
+    const startX = centerX - totalWidth / 2;
+
+    for (let h = 0; h < maxHP; h++) {
+      const hx = startX + h * spacing;
+      if (h < hp) {
+        p.fill(255, 50, 50);
+      } else {
+        p.fill(60, 60, 60);
+      }
+      p.noStroke();
+      // Simple heart: two circles + triangle
+      const r = heartSize / 4;
+      p.circle(hx + r, startY - r * 0.5, r * 2);
+      p.circle(hx + heartSize - r, startY - r * 0.5, r * 2);
+      p.triangle(hx, startY, hx + heartSize, startY, hx + heartSize / 2, startY + heartSize * 0.6);
+    }
   }
 }
 

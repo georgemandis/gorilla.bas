@@ -116,6 +116,8 @@ export interface GameState {
   gravity: number;
   scores: [number, number];
   targetScore: number;
+  maxHP: number;
+  hp: [number, number];
   gravityPreset: GravityPreset;
   timeOfDay: TimeOfDay;
   cityTheme: CityTheme;
