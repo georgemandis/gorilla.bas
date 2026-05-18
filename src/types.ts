@@ -152,7 +152,7 @@ export interface GameState {
   crate: PowerUpCrate | null;
   inventory: [PowerUpType[], PowerUpType[]];
   selectedPowerUp: PowerUpType | null;
-  selectedSlotIndex: number;          // -1 = no selection, 0-2 = inventory slot
+  selectedSlotIndex: number;          // -1 = jump (permanent), 0+ = inventory slot
   inventoryOpen: boolean;
   inventoryScrollOffset: number;
   extraThrowRemaining: boolean;
@@ -167,4 +167,6 @@ export interface GameState {
   earthquakeTimer: number;
   fallingGorillas: [FallingAnim | null, FallingAnim | null];
   jumpAnim: JumpAnim | null;
+  floatingText: { x: number; y: number; label: string; color: "red" | "green"; timer: number } | null;
+  startingItems: number;
 }

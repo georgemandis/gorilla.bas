@@ -85,6 +85,8 @@ function createInitialState(): GameState {
     earthquakeTimer: 0,
     fallingGorillas: [null, null],
     jumpAnim: null,
+    floatingText: null,
+    startingItems: 0,
   };
 }
 

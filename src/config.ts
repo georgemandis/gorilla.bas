@@ -95,7 +95,7 @@ export const SUN_RADIUS = 12;
 // Power-ups
 export const CRATE_SPAWN_CHANCE = 0.2; // 1 in 5
 export const CRATE_SIZE = 10;
-export const MAX_INVENTORY = 20; // TODO: revert to 3 after testing
+export const MAX_INVENTORY = 5;
 export const BIG_BANANA_EXPLOSION_MULT = 2.5;
 export const BIG_BANANA_VISUAL_SCALE = 2;
 export const CLUSTER_SPLIT_MS = 600;
@@ -122,10 +122,11 @@ export const CONSTRUCTION_HEIGHT_ADD = 30;
 export const CONSTRUCTION_BUILDING_HEIGHT = 80;
 export const JUMP_ARC_MS = 400;
 export const JUMP_ARC_HEIGHT = 40;
+export const STARTING_ITEMS_OPTIONS = [0, 1, 2, 3, 5];
 export const ALL_POWERUP_TYPES: PowerUpType[] = [
   "big_banana", "two_bananas", "ricochet", "wrap_around",
   "cluster_bomb", "teleportation", "portal", "confetti", "poison",
   "ice", "mirror", "gravity_flip", "shield", "rubber", "homing",
   "ghost", "giant", "boomerang", "drunk", "earthquake",
-  "demolition", "construction", "jump",
+  "demolition", "construction",
 ];
