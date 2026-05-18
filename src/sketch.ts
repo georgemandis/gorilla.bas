@@ -29,7 +29,7 @@ import { randomName } from "./names";
 import { getCostume } from "./costumes";
 import { playSound, startPowerHum, updatePowerHum, stopPowerHum } from "./sound";
 import { trySpawnCrate, updateCrateFall, drawCrate, collectCrate, cycleSelectedPowerUp, consumeSelectedPowerUp } from "./powerups";
-import { applyPowerUpToProjectile, handleRicochet, handleWrapAround, splitClusterBomb, checkPortalEntry, applyHomingNudge, handleRubberBounce } from "./powerup-behaviors";
+import { applyPowerUpToProjectile, handleRicochet, handleWrapAround, splitClusterBomb, checkPortalEntry, applyHomingNudge, handleRubberBounce, applyDrunkWobble } from "./powerup-behaviors";
 
 function createInitialState(): GameState {
   return {
@@ -557,7 +557,12 @@ const sketch = (p: p5) => {
       return;
     }
 
-    const pos = getProjectilePositionWithGravity(state.projectile, state.wind, effectiveGravity);
+    let pos = getProjectilePositionWithGravity(state.projectile, state.wind, effectiveGravity);
+
+    // Drunk wobble — affects both visual and collision position
+    if (state.projectile.powerUpType === "drunk") {
+      pos = applyDrunkWobble(pos, state.projectile);
+    }
 
     // Homing: nudge toward opponent after apex
     if (state.projectile.powerUpType === "homing") {
@@ -1645,7 +1650,10 @@ const sketch = (p: p5) => {
     if (!state.projectile) return;
     const playerGravIdx = (state.currentPlayer - 1) as 0 | 1;
     const drawGravity = state.gravityTurns[playerGravIdx] > 0 ? -state.gravity : state.gravity;
-    const pos = getProjectilePositionWithGravity(state.projectile, state.wind, drawGravity);
+    let pos = getProjectilePositionWithGravity(state.projectile, state.wind, drawGravity);
+    if (state.projectile.powerUpType === "drunk") {
+      pos = applyDrunkWobble(pos, state.projectile);
+    }
 
     // Only draw if reasonably on screen
     if (pos.y < -50 || pos.x < -10 || pos.x > WIDTH + 10) return;
