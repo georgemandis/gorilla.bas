@@ -18,6 +18,8 @@ import {
   FALLING_SPEED,
   CONSTRUCTION_HEIGHT_ADD,
   CITY_THEME_COLORS,
+  JUMP_ARC_MS,
+  JUMP_ARC_HEIGHT,
 } from "./config";
 import { getPlayerInput, getSystemInput } from "./input";
 import { generateCityscape, placeGorillas, generateWind, randomGorillaPlacements, reshuffleBuildings, checkGorillaGroundSupport, insertBuilding } from "./city";
@@ -263,6 +265,11 @@ const sketch = (p: p5) => {
         }
         break;
 
+      case "jump":
+        updateJump();
+        drawGameplay(p);
+        break;
+
       case "victory":
         updateVictory();
         drawGameplay(p);
@@ -480,6 +487,43 @@ const sketch = (p: p5) => {
       return;
     }
 
+    // Jump: instant effect, no projectile
+    if (activePowerUp === "jump") {
+      // Determine direction from angle
+      let jumpRight = state.angle <= 90 || state.angle > 270;
+      // Mirror inverts direction
+      if (state.mirrorTurns[playerIdx] > 0) jumpRight = !jumpRight;
+
+      const currentBuildingIdx = findBuildingUnderGorilla(gorilla, state.buildings);
+      const targetIdx = findJumpTarget(currentBuildingIdx, jumpRight);
+
+      if (targetIdx >= 0 && targetIdx !== currentBuildingIdx) {
+        const targetBuilding = state.buildings[targetIdx];
+        const endX = targetBuilding.x + targetBuilding.width / 2 - GORILLA_WIDTH / 2;
+        const endY = targetBuilding.y - GORILLA_HEIGHT;
+        const isWrapping = jumpRight
+          ? targetIdx < currentBuildingIdx  // went right but ended up at lower index = wrapped
+          : targetIdx > currentBuildingIdx; // went left but ended up at higher index = wrapped
+
+        state.jumpAnim = {
+          playerIdx,
+          startX: gorilla.x,
+          startY: gorilla.y,
+          endX,
+          endY,
+          startTime: p.millis(),
+          wrapDirection: isWrapping ? (jumpRight ? "right" : "left") : null,
+        };
+        state.phase = "jump";
+        playSound("jump_launch");
+      } else {
+        // No valid building — stay put, consume turn
+        resolveThrowEnd();
+      }
+      gorilla.armState = "down";
+      return;
+    }
+
     const angleRad = (state.angle * Math.PI) / 180;
     const launchOffset = GORILLA_HEIGHT / 2 + 5;
     const startX = gorilla.x + GORILLA_WIDTH / 2 + Math.cos(angleRad) * launchOffset;
@@ -559,6 +603,19 @@ const sketch = (p: p5) => {
     return -1;
   }
 
+  function findJumpTarget(currentIdx: number, goRight: boolean): number {
+    const len = state.buildings.length;
+    if (currentIdx < 0) return -1;
+
+    const step = goRight ? 1 : -1;
+    // Search in the aimed direction, wrapping around
+    for (let i = 1; i < len; i++) {
+      const idx = ((currentIdx + step * i) % len + len) % len;
+      if (state.buildings[idx].height > 0) return idx;
+    }
+    return -1; // all buildings demolished
+  }
+
   function triggerEarthquake() {
     reshuffleBuildings(state.buildings, state.cityTheme, state.timeOfDay);
     // Reposition gorillas on their (now reshuffled) buildings
@@ -600,6 +657,59 @@ const sketch = (p: p5) => {
 
   function isFallingComplete(): boolean {
     return state.fallingGorillas[0] === null && state.fallingGorillas[1] === null;
+  }
+
+  function updateJump() {
+    if (!state.jumpAnim) return;
+    const elapsed = p.millis() - state.jumpAnim.startTime;
+    const t = Math.min(elapsed / JUMP_ARC_MS, 1);
+
+    const anim = state.jumpAnim;
+    const gorilla = state.gorillas[anim.playerIdx];
+
+    // Arms up during jump
+    gorilla.armState = t < 1 ? "left_up" : "down";
+
+    if (t >= 1) {
+      // Landing
+      gorilla.x = anim.endX;
+      gorilla.y = anim.endY;
+      gorilla.armState = "down";
+      state.jumpAnim = null;
+      playSound("jump_land");
+      resolveThrowEnd();
+      return;
+    }
+
+    // Compute animated position
+    const peakY = Math.min(anim.startY, anim.endY) - JUMP_ARC_HEIGHT;
+
+    if (!anim.wrapDirection) {
+      // Normal jump: lerp X, parabolic Y
+      gorilla.x = anim.startX + (anim.endX - anim.startX) * t;
+      // Parabolic arc: quadratic through (0, startY), (0.5, peakY), (1, endY)
+      const a0 = anim.startY;
+      const a1 = anim.endY;
+      gorilla.y = a0 * (1 - t) * (1 - 2 * t) + peakY * 4 * t * (1 - t) + a1 * t * (2 * t - 1);
+    } else {
+      // Wrap-around jump: two segments
+      const edge = anim.wrapDirection === "right" ? WIDTH : 0;
+      const oppositeEdge = anim.wrapDirection === "right" ? 0 : WIDTH;
+
+      if (t < 0.5) {
+        // First half: move toward edge
+        const segT = t / 0.5;
+        gorilla.x = anim.startX + (edge - anim.startX) * segT;
+        // Y arcs up to peak at t=0.5
+        gorilla.y = anim.startY + (peakY - anim.startY) * segT;
+      } else {
+        // Second half: appear from opposite edge, move to target
+        const segT = (t - 0.5) / 0.5;
+        gorilla.x = oppositeEdge + (anim.endX - oppositeEdge) * segT;
+        // Y arcs down from peak to end
+        gorilla.y = peakY + (anim.endY - peakY) * segT;
+      }
+    }
   }
 
   function updateFlight() {
