@@ -444,6 +444,35 @@ export function drawInventoryHUD(p: p5, state: GameState): void {
     const y = 12;
     drawPowerUpIcon(p, x, y, iconSize, state.inventory[1][i]);
   }
+
+  // Show selected power-up name for current player
+  if (state.selectedPowerUp) {
+    const label = powerUpDisplayName(state.selectedPowerUp);
+    p.noStroke();
+    p.textSize(5);
+    p.fill(255, 255, 100);
+    if (state.currentPlayer === 1) {
+      p.textAlign(p.LEFT, p.TOP);
+      p.text(label, 4, 19);
+    } else {
+      p.textAlign(p.RIGHT, p.TOP);
+      p.text(label, WIDTH - 4, 19);
+    }
+  }
+}
+
+function powerUpDisplayName(type: PowerUpType): string {
+  switch (type) {
+    case "big_banana": return "BIG BANANA";
+    case "two_bananas": return "2x BANANA";
+    case "ricochet": return "RICOCHET";
+    case "wrap_around": return "WRAP";
+    case "cluster_bomb": return "CLUSTER";
+    case "teleportation": return "TELEPORT";
+    case "portal": return "PORTAL";
+    case "confetti": return "CONFETTI";
+    case "poison": return "POISON";
+  }
 }
 
 function drawPowerUpIcon(p: p5, x: number, y: number, size: number, type: PowerUpType): void {

@@ -94,10 +94,10 @@ export const SUN_RADIUS = 12;
 // Power-ups
 export const CRATE_SPAWN_CHANCE = 0.2; // 1 in 5
 export const CRATE_SIZE = 10;
-export const MAX_INVENTORY = 3;
+export const MAX_INVENTORY = 9; // TODO: revert to 3 after testing
 export const BIG_BANANA_EXPLOSION_MULT = 2.5;
 export const BIG_BANANA_VISUAL_SCALE = 2;
-export const CLUSTER_SPLIT_MS = 1200;
+export const CLUSTER_SPLIT_MS = 600;
 export const CLUSTER_SUB_COUNT = 5;
 export const CLUSTER_FAN_DEGREES = 60;
 export const CLUSTER_EXPLOSION_MULT = 0.5;

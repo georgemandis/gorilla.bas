@@ -156,10 +156,10 @@ export function checkPortalEntry(
     const portal = portals[i]!;
     const otherPortal = portals[1 - i]!;
 
-    // Check if banana is near this portal (within ~10px)
+    // Check if banana is near this portal (within ~18px)
     const dx = pos.x - portal.x;
     const dy = pos.y - portal.y;
-    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+    if (Math.abs(dx) < 18 && Math.abs(dy) < 18) {
       // Use current velocity (wind-free vx, convert screen-vy to launch convention)
       const currentVy = -proj.vy + gravity * proj.t;
       const restarted = restartProjectile(

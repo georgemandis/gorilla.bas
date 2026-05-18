@@ -13,6 +13,7 @@ import {
   WINDOW_COLORS, NEON_WINDOW_COLORS,
   SKY_COLORS, GROUND_COLORS,
   POISON_TURNS, POISON_POWER_CAP,
+  ALL_POWERUP_TYPES,
 } from "./config";
 import { getPlayerInput, getSystemInput } from "./input";
 import { generateCityscape, placeGorillas, generateWind, randomGorillaPlacements } from "./city";
@@ -86,6 +87,9 @@ const sketch = (p: p5) => {
   let confettiTimer = 0;
   const CONFETTI_DURATION_MS = 1500;
   const CONFETTI_REACTIONS = ["...What?", "Huh?!", "Confetti?!", "*blinks*", "Wha...?", "???", "Seriously?!"];
+  let teleportAnimTimer = 0;
+  let teleportAnimTargets: [{ x: number; y: number }, { x: number; y: number }] | null = null;
+  const TELEPORT_ANIM_MS = 800;
   let bananaRotation = 0;
   let lastAngles: [number, number] = [INITIAL_ANGLE_P1, INITIAL_ANGLE_P2];
   let loserFallOffset = 0;
@@ -209,7 +213,9 @@ const sketch = (p: p5) => {
         break;
 
       case "flight":
-        if (state.projectile) {
+        if (teleportAnimTargets) {
+          updateTeleportAnim(p);
+        } else if (state.projectile) {
           updateFlight();
         } else if (state.activeSubProjectiles.length > 0) {
           updateSubProjectiles();
@@ -221,6 +227,7 @@ const sketch = (p: p5) => {
         }
         drawSubProjectiles(p);
         drawConfetti(p);
+        drawTeleportAnim(p);
         break;
 
       case "explosion":
@@ -358,6 +365,9 @@ const sketch = (p: p5) => {
     state.isExtraThrow = false;
     state.selectedPowerUp = null;
     state.selectedSlotIndex = -1;
+    // TODO: remove after testing — give both players all power-ups each round
+    state.inventory[0] = [...ALL_POWERUP_TYPES];
+    state.inventory[1] = [...ALL_POWERUP_TYPES];
     state.phase = "round_start";
     state.roundStartTimer = p.millis();
   }
@@ -437,9 +447,15 @@ const sketch = (p: p5) => {
 
     state.projectile = createProjectile(startX, startY, state.angle, state.power);
 
-    // Apply active power-up
-    const activePowerUp = consumeSelectedPowerUp(state, (state.currentPlayer - 1) as 0 | 1);
-    applyPowerUpToProjectile(state.projectile, activePowerUp, p.millis());
+    // Apply active power-up (skip consume on extra throw — power-up already consumed)
+    const activePowerUp = state.isExtraThrow ? null : consumeSelectedPowerUp(state, (state.currentPlayer - 1) as 0 | 1);
+
+    // For portal extra throw, tag projectile as portal so it places the second portal
+    if (state.isExtraThrow && state.portals[0] !== null && state.portals[1] === null) {
+      state.projectile.powerUpType = "portal";
+    } else {
+      applyPowerUpToProjectile(state.projectile, activePowerUp, p.millis());
+    }
 
     // Set extra throw for two_bananas
     if (activePowerUp === "two_bananas") {
@@ -625,13 +641,12 @@ const sketch = (p: p5) => {
             findBuildingUnderGorilla(state.gorillas[1], state.buildings)
           );
           if (placements) {
-            state.gorillas[0].x = placements[0].x;
-            state.gorillas[0].y = placements[0].y;
-            state.gorillas[1].x = placements[1].x;
-            state.gorillas[1].y = placements[1].y;
+            teleportAnimTargets = [placements[0], placements[1]];
+            teleportAnimTimer = p.millis();
+            playSound("teleport_zap");
+          } else {
+            resolveThrowEnd();
           }
-          playSound("teleport_zap");
-          resolveThrowEnd();
           break;
         }
         explosionX = pos.x;
@@ -1260,6 +1275,68 @@ const sketch = (p: p5) => {
     p.text(tauntBubbleText, bx, by - 1);
   }
 
+  function updateTeleportAnim(p: p5) {
+    const elapsed = p.millis() - teleportAnimTimer;
+    if (elapsed >= TELEPORT_ANIM_MS) {
+      // Animation done — move gorillas to targets and resolve
+      if (teleportAnimTargets) {
+        state.gorillas[0].x = teleportAnimTargets[0].x;
+        state.gorillas[0].y = teleportAnimTargets[0].y;
+        state.gorillas[1].x = teleportAnimTargets[1].x;
+        state.gorillas[1].y = teleportAnimTargets[1].y;
+      }
+      teleportAnimTargets = null;
+      resolveThrowEnd();
+    }
+  }
+
+  function drawTeleportAnim(p: p5) {
+    if (!teleportAnimTargets) return;
+    const elapsed = p.millis() - teleportAnimTimer;
+    const progress = Math.min(elapsed / TELEPORT_ANIM_MS, 1);
+
+    // Phase 1 (0-0.4): shrink at old position
+    // Phase 2 (0.4-0.6): invisible
+    // Phase 3 (0.6-1.0): grow at new position
+    for (let i = 0; i < 2; i++) {
+      const gorilla = state.gorillas[i];
+      const target = teleportAnimTargets[i];
+      let scale = 1;
+      let drawX = gorilla.x;
+      let drawY = gorilla.y;
+
+      if (progress < 0.4) {
+        // Shrinking at old position
+        scale = 1 - (progress / 0.4);
+        drawX = gorilla.x;
+        drawY = gorilla.y;
+      } else if (progress < 0.6) {
+        // Invisible
+        scale = 0;
+      } else {
+        // Growing at new position
+        scale = (progress - 0.6) / 0.4;
+        drawX = target.x;
+        drawY = target.y;
+      }
+
+      if (scale > 0.01) {
+        const cx = drawX + GORILLA_WIDTH / 2;
+        const cy = drawY + GORILLA_HEIGHT / 2;
+        p.push();
+        p.translate(cx, cy);
+        p.scale(scale);
+        p.translate(-GORILLA_WIDTH / 2, -GORILLA_HEIGHT / 2);
+        // Draw sparkle effect
+        const sparkle = Math.sin(p.millis() / 50) * 0.5 + 0.5;
+        p.fill(0, 255, 200, 100 + sparkle * 100);
+        p.noStroke();
+        p.circle(GORILLA_WIDTH / 2, GORILLA_HEIGHT / 2, GORILLA_WIDTH * (1.5 - scale));
+        p.pop();
+      }
+    }
+  }
+
   function placePortal(st: GameState, edge: "left" | "right", x: number, y: number) {
     if (st.portals[0] === null) {
       st.portals[0] = { edge, x, y, color: "orange" };
@@ -1321,6 +1398,8 @@ const sketch = (p: p5) => {
       : -1;
 
     for (let i = 0; i < 2; i++) {
+      // Hide gorillas during teleport animation (drawTeleportAnim handles visuals)
+      if (teleportAnimTargets) continue;
       if (i === loserIdx) {
         // Draw loser flipped upside down, falling
         const g = state.gorillas[i];
@@ -1420,9 +1499,26 @@ const sketch = (p: p5) => {
     p.push();
     p.translate(pos.x, pos.y);
     p.rotate(bananaRotation);
-    p.fill(255, 255, 0);
     p.noStroke();
-    p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+
+    // Portal banana — draw with portal colors
+    if (state.projectile.powerUpType === "portal") {
+      const isSecond = state.portals[0] !== null;
+      if (isSecond) {
+        p.fill(0, 140, 255); // blue for second portal
+      } else {
+        p.fill(255, 140, 0); // orange for first portal
+      }
+      // Draw a swirly portal-banana shape
+      p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+      p.stroke(255, 255, 255, 150);
+      p.strokeWeight(1);
+      p.noFill();
+      p.arc(0, 0, 10 * scale, 8 * scale, 0.3, Math.PI - 0.3);
+    } else {
+      p.fill(255, 255, 0);
+      p.arc(0, 0, 8 * scale, 6 * scale, 0, Math.PI);
+    }
     p.pop();
   }
 };
