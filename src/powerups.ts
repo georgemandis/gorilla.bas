@@ -30,6 +30,9 @@ export function powerUpShortName(type: PowerUpType): string {
     case "demolition": return "DEMOLISH";
     case "construction": return "BUILD";
     case "jump": return "JUMP";
+    case "fire": return "FIRE";
+    case "lava": return "LAVA";
+    case "storm": return "STORM";
     default: return (type as string).toUpperCase();
   }
 }

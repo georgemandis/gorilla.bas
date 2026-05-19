@@ -230,6 +230,29 @@ export function drawAngleIndicator(p: p5, state: GameState): void {
       p.rect(-2, -4, 4, 5);
       p.rect(-4, 1, 8, 2);
       break;
+    case "fire":
+      p.fill(255, 80, 0);
+      p.arc(0, 0, 8, 6, 0, Math.PI);
+      p.fill(255, 200, 0, 200);
+      p.triangle(-2, 0, 2, 0, 0, -4);
+      break;
+    case "lava":
+      p.fill(180, 30, 0);
+      p.arc(0, 0, 8, 6, 0, Math.PI);
+      p.fill(255, 100, 0);
+      p.arc(0, 1, 6, 3, Math.PI, Math.PI * 2);
+      break;
+    case "storm":
+      p.fill(80, 80, 120);
+      p.arc(0, 0, 8, 6, 0, Math.PI);
+      p.fill(255, 255, 100);
+      p.strokeWeight(1);
+      p.stroke(255, 255, 100);
+      p.line(0, -3, -1, -1);
+      p.line(-1, -1, 1, -2);
+      p.line(1, -2, 0, 0);
+      p.noStroke();
+      break;
     case null:
     default:
       p.fill(255, 255, 0);
@@ -868,6 +891,9 @@ function powerUpDisplayName(type: PowerUpType): string {
     case "demolition": return "DEMOLITION";
     case "construction": return "BUILD";
     case "jump": return "JUMP";
+    case "fire": return "FIRE";
+    case "lava": return "LAVA";
+    case "storm": return "STORM";
     default: return (type as string).toUpperCase();
   }
 }
@@ -897,6 +923,9 @@ function powerUpHint(type: PowerUpType): string {
     case "demolition": return "Levels a building.";
     case "construction": return "Builds things up.";
     case "jump": return "Leap to next building.";
+    case "fire": return "Sets buildings ablaze.";
+    case "lava": return "Aim at the ground...";
+    case "storm": return "Throw it skyward.";
     default: return "";
   }
 }
@@ -1004,6 +1033,24 @@ function drawPowerUpIcon(p: p5, x: number, y: number, size: number, type: PowerU
       p.rect(x + size / 4, y, size / 2, size * 0.6);
       p.rect(x, y + size * 0.6, size, size * 0.4);
       break;
+    case "fire":
+      p.fill(255, 80, 0);
+      p.circle(x + size / 2, y + size / 2, size);
+      p.fill(255, 200, 0);
+      p.circle(x + size / 2, y + size / 3, size * 0.5);
+      break;
+    case "lava":
+      p.fill(180, 30, 0);
+      p.circle(x + size / 2, y + size / 2, size);
+      p.fill(255, 100, 0);
+      p.circle(x + size / 2, y + size / 2, size * 0.5);
+      break;
+    case "storm":
+      p.fill(80, 80, 120);
+      p.circle(x + size / 2, y + size / 2, size);
+      p.fill(255, 255, 100);
+      p.rect(x + size / 3, y + size / 4, size / 4, size / 2);
+      break;
     default:
       p.fill(150);
       p.circle(x + size / 2, y + size / 2, size);
@@ -1079,4 +1126,145 @@ export function drawGameOver(p: p5, state: GameState): void {
   p.fill(150);
   p.textSize(6);
   p.text("Press START", WIDTH / 2, HEIGHT * 3 / 4);
+}
+
+export function drawBurningBuildings(p: p5, buildings: import("./types").Building[], burningSet: Set<number>): void {
+  for (const idx of burningSet) {
+    const b = buildings[idx];
+    if (!b || b.height <= 0) continue;
+
+    p.fill(255, 50, 0, 40);
+    p.noStroke();
+    p.rect(b.x, b.y, b.width, b.height);
+
+    const flameCount = Math.max(2, Math.floor(b.width / 8));
+    for (let i = 0; i < flameCount; i++) {
+      const fx = b.x + (i + 0.5) * (b.width / flameCount);
+      const flicker = Math.sin(p.millis() / 100 + i * 2.5) * 3;
+      const height = 6 + Math.sin(p.millis() / 150 + i * 1.7) * 3;
+
+      p.fill(255, 80 + Math.floor(Math.sin(p.millis() / 120 + i) * 40), 0, 200);
+      p.noStroke();
+      p.triangle(
+        fx - 3, b.y,
+        fx + 3, b.y,
+        fx + flicker * 0.5, b.y - height
+      );
+
+      p.fill(255, 220, 50, 180);
+      p.triangle(
+        fx - 1.5, b.y,
+        fx + 1.5, b.y,
+        fx + flicker * 0.3, b.y - height * 0.6
+      );
+    }
+  }
+}
+
+export function drawLava(p: p5, lavaHeight: number): void {
+  const lavaTop = lavaHeight;
+  const lavaBottom = HEIGHT;
+
+  p.fill(200, 40, 0);
+  p.noStroke();
+  p.rect(0, lavaTop, WIDTH, lavaBottom - lavaTop);
+
+  p.fill(255, 120, 0);
+  p.rect(0, lavaTop, WIDTH, 4);
+
+  p.stroke(255, 200, 50);
+  p.strokeWeight(1);
+  p.noFill();
+  p.beginShape();
+  for (let x = 0; x <= WIDTH; x += 4) {
+    const wave = Math.sin(x * 0.05 + p.millis() / 400) * 2;
+    p.vertex(x, lavaTop + wave);
+  }
+  p.endShape();
+  p.noStroke();
+
+  const bubblePhase = p.millis() / 300;
+  for (let i = 0; i < 5; i++) {
+    const bx = ((i * 73 + Math.floor(bubblePhase) * 37) % WIDTH);
+    const bubbleT = (bubblePhase + i * 0.7) % 1;
+    if (bubbleT < 0.3) {
+      const by = lavaTop + 4 - bubbleT * 10;
+      const bSize = 2 + bubbleT * 3;
+      p.fill(255, 180, 50, 150 * (1 - bubbleT / 0.3));
+      p.circle(bx, by, bSize);
+    }
+  }
+}
+
+export function drawStormClouds(p: p5): void {
+  p.noStroke();
+  const drift = p.millis() * 0.005;
+
+  for (let layer = 0; layer < 3; layer++) {
+    const alpha = 120 + layer * 30;
+    p.fill(30, 30, 50, alpha);
+    for (let x = -20; x < WIDTH + 20; x += 25) {
+      const offsetX = Math.sin(x * 0.02 + drift + layer) * 8;
+      const y = 5 + layer * 10;
+      const w = 30 + Math.sin(x * 0.05 + layer) * 10;
+      const h = 12 + Math.sin(x * 0.03 + drift) * 3;
+      p.ellipse(x + offsetX, y, w, h);
+    }
+  }
+}
+
+export function drawLightning(p: p5, targetX: number, targetY: number, progress: number): void {
+  if (progress >= 1) return;
+
+  if (progress < 0.2) {
+    p.fill(255, 255, 255, Math.floor(80 * (1 - progress / 0.2)));
+    p.noStroke();
+    p.rect(0, 0, WIDTH, HEIGHT);
+  }
+
+  const alpha = Math.floor(255 * (1 - progress));
+  p.stroke(255, 255, 200, alpha);
+  p.strokeWeight(2);
+
+  const startY = 35;
+  const segments = 5;
+  let prevX = targetX + (Math.random() - 0.5) * 4;
+  let prevY = startY;
+
+  for (let i = 1; i <= segments; i++) {
+    const t = i / segments;
+    const nextX = targetX + (Math.random() - 0.5) * 15 * (1 - t);
+    const nextY = startY + (targetY - startY) * t;
+    p.line(prevX, prevY, nextX, nextY);
+    prevX = nextX;
+    prevY = nextY;
+  }
+
+  p.stroke(255, 255, 255, alpha);
+  p.strokeWeight(1);
+  prevX = targetX;
+  prevY = startY;
+  for (let i = 1; i <= segments; i++) {
+    const t = i / segments;
+    const nextX = targetX + (Math.random() - 0.5) * 8 * (1 - t);
+    const nextY = startY + (targetY - startY) * t;
+    p.line(prevX, prevY, nextX, nextY);
+    prevX = nextX;
+    prevY = nextY;
+  }
+
+  p.noStroke();
+}
+
+export function drawFizzleBubble(p: p5, gorilla: import("./types").Gorilla, progress: number): void {
+  if (progress >= 1) return;
+  const alpha = Math.floor(255 * (1 - progress));
+  const cx = gorilla.x + GORILLA_WIDTH / 2;
+  const cy = gorilla.y - 10 - progress * 5;
+
+  p.fill(255, 255, 255, alpha);
+  p.noStroke();
+  p.textSize(8);
+  p.textAlign(p.CENTER, p.CENTER);
+  p.text("?", cx, cy);
 }
