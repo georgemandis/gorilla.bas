@@ -231,10 +231,6 @@ const sketch = (p: p5) => {
         if (!state.inventoryOpen) updateTaunts(p1Input, p2Input);
         updateKonamiCode(p1Input, p2Input);
         drawGameplay(p);
-        if (!isActiveTaunting()) {
-          drawActivePlayerIndicator(p, state);
-          drawAngleIndicator(p, state);
-        }
         break;
 
       case "power":
@@ -242,10 +238,6 @@ const sketch = (p: p5) => {
         updateTaunts(p1Input, p2Input);
         updateKonamiCode(p1Input, p2Input);
         drawGameplay(p);
-        if (!isActiveTaunting()) {
-          drawActivePlayerIndicator(p, state);
-          drawAngleIndicator(p, state);
-        }
         drawPowerMeter(p, state);
         break;
 
@@ -2367,6 +2359,12 @@ const sketch = (p: p5) => {
       drawStormClouds(p);
     } else {
       drawSun(p, state.sunShocked, state.timeOfDay);
+    }
+
+    // Draw active player indicator (name + arrow) under HUD
+    if ((state.phase === "aim" || state.phase === "power") && !isActiveTaunting()) {
+      drawActivePlayerIndicator(p, state);
+      drawAngleIndicator(p, state);
     }
 
     drawScores(p, state);
