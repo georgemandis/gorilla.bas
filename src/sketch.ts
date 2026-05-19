@@ -576,6 +576,14 @@ const sketch = (p: p5) => {
 
       // A button pressed — launch (edge detection)
       if (input.a && !prevA) {
+        // Instant-action power-ups skip the power meter
+        const sel = state.selectedPowerUp;
+        if (sel === "jump" || sel === "shield" || sel === "teleportation") {
+          state.power = sel === "teleportation" ? 50 : 0;
+          launchBanana();
+          return;
+        }
+
         state.phase = "power";
         state.powerMeterValue = 0;
         state.powerMeterDirection = 1;
