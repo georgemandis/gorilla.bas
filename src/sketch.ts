@@ -98,6 +98,7 @@ function createInitialState(): GameState {
     hazardDamageStep: 0,
     hazardDamageTimer: 0,
     lightningTarget: -1,
+    gameOverEnteredAt: 0,
   };
 }
 
@@ -1587,6 +1588,7 @@ const sketch = (p: p5) => {
       // Check if game over
       if (state.scores[0] >= state.targetScore || state.scores[1] >= state.targetScore) {
         state.phase = "game_over";
+        state.gameOverEnteredAt = p.millis();
       } else {
         // Loser goes first next round
         if (state.lastHitPlayer !== null) {

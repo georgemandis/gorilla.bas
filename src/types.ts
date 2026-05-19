@@ -179,4 +179,5 @@ export interface GameState {
   hazardDamageStep: number;
   hazardDamageTimer: number;
   lightningTarget: number;
+  gameOverEnteredAt: number;
 }

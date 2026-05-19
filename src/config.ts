@@ -138,3 +138,10 @@ export const ALL_POWERUP_TYPES: PowerUpType[] = [
   "ghost", "giant", "boomerang", "drunk", "earthquake",
   "demolition", "construction", "fire", "lava", "storm",
 ];
+
+// Award reveal timing
+export const AWARD_REVEAL_1_MS = 1000;
+export const AWARD_REVEAL_2_MS = 2000;
+export const AWARD_BONUS_MS = 3000;
+export const AWARD_FADE_MS = 300;
+export const AWARD_START_VISIBLE_MS = 3500;
