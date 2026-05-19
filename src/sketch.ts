@@ -533,13 +533,17 @@ const sketch = (p: p5) => {
         state.inventoryScrollOffset = 0;
       }
     } else {
-      // B opens inventory HUD
+      // B opens inventory HUD — resume where we left off
       if (input.b && !prevB) {
         savedPowerUp = state.selectedPowerUp;
         savedSlotIndex = state.selectedSlotIndex;
+        const inv = state.inventory[playerIdx];
+        // Validate current slot is still valid (item may have been consumed)
+        if (state.selectedSlotIndex >= 0 && state.selectedSlotIndex >= inv.length) {
+          state.selectedSlotIndex = -2;
+          state.selectedPowerUp = null;
+        }
         state.inventoryOpen = true;
-        state.selectedSlotIndex = -2; // Start at NORMAL
-        state.selectedPowerUp = null;
         playSound("powerup_select");
       }
 
