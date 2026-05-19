@@ -1064,13 +1064,26 @@ const sketch = (p: p5) => {
             state.lavaActive = true;
             state.lavaHeight = BOTTOM_LINE - LAVA_HEIGHT_OFFSET;
             playSound("lava_activate");
+            state.projectile = null;
+            // Immediately kill any gorilla already in the lava zone
+            for (let li = 0; li < 2; li++) {
+              if (state.gorillas[li].y + GORILLA_HEIGHT >= state.lavaHeight) {
+                state.hp[li as 0 | 1] = 0;
+                state.lastHitPlayer = (li + 1) as 1 | 2;
+                playSound("lava_death");
+                state.phase = "victory";
+                state.victoryTimer = p.millis();
+                return;
+              }
+            }
+            resolveThrowEnd();
           } else {
             state.fizzleTimer = p.millis();
             state.fizzlePlayerIdx = (state.currentPlayer - 1) as 0 | 1;
             playSound("fizzle");
+            state.projectile = null;
+            resolveThrowEnd();
           }
-          state.projectile = null;
-          resolveThrowEnd();
           return;
         }
         // Storm: fizzle on ground/side miss
