@@ -31,6 +31,7 @@ import {
   drawScores, drawAngleIndicator, drawActivePlayerIndicator, drawPowerMeter,
   drawSun, drawEvilSun, drawExplosion, drawTitleScreen, drawConfigScreen,
   drawGameOver, drawInventoryHUD, drawPortals, drawHP, drawFloatingText,
+  drawBurningBuildings, drawLava, drawStormClouds, drawLightning, drawFizzleBubble,
 } from "./ui";
 import { randomName } from "./names";
 import { getCostume } from "./costumes";
@@ -299,6 +300,19 @@ const sketch = (p: p5) => {
         drawBananality(p);
         break;
 
+      case "hazard_damage":
+        updateHazardDamage();
+        drawGameplay(p);
+        // Draw lightning during storm step
+        if (state.stormActive && state.lightningTarget >= 0 && state.hazardDamageStep === 1) {
+          const targetBuilding = state.buildings[state.lightningTarget];
+          if (targetBuilding && targetBuilding.height > 0) {
+            const progress = (p.millis() - state.hazardDamageTimer) / STORM_LIGHTNING_DELAY_MS;
+            drawLightning(p, targetBuilding.x + targetBuilding.width / 2, targetBuilding.y, progress);
+          }
+        }
+        break;
+
       case "game_over":
         updateGameOver(sys);
         drawGameOver(p, state);
@@ -454,9 +468,7 @@ const sketch = (p: p5) => {
 
   function updateRoundStart() {
     if (p.millis() - state.roundStartTimer > ROUND_START_DELAY_MS) {
-      state.angle = lastAngles[state.currentPlayer - 1];
-      state.phase = "aim";
-      trySpawnCrate(state, state.wind);
+      enterAimPhase();
     }
   }
 
@@ -2082,12 +2094,117 @@ const sketch = (p: p5) => {
     state.isExtraThrow = false;
   }
 
+  function enterAimPhase() {
+    // Check if hazard damage needs to resolve first
+    if (state.burningBuildings.size > 0 || state.stormActive) {
+      const playerIdx = (state.currentPlayer - 1) as 0 | 1;
+      const bIdx = findBuildingUnderGorilla(state.gorillas[playerIdx], state.buildings);
+      const onFire = bIdx >= 0 && state.burningBuildings.has(bIdx);
+      if (onFire || state.stormActive) {
+        state.hazardDamageStep = 0;
+        state.hazardDamageTimer = p.millis();
+        state.lightningTarget = -1;
+        state.phase = "hazard_damage";
+        return;
+      }
+    }
+    state.angle = lastAngles[state.currentPlayer - 1];
+    state.phase = "aim";
+    trySpawnCrate(state, state.wind);
+  }
+
+  function updateHazardDamage() {
+    const elapsed = p.millis() - state.hazardDamageTimer;
+    const playerIdx = (state.currentPlayer - 1) as 0 | 1;
+
+    if (state.hazardDamageStep === 0) {
+      // Fire check
+      const bIdx = findBuildingUnderGorilla(state.gorillas[playerIdx], state.buildings);
+      if (bIdx >= 0 && state.burningBuildings.has(bIdx)) {
+        if (elapsed < 200) return; // brief pause before damage
+        state.hp[playerIdx] -= FIRE_DAMAGE_PER_TURN;
+        setFloatingText(
+          state.gorillas[playerIdx].x + GORILLA_WIDTH / 2,
+          state.gorillas[playerIdx].y - 5,
+          "-1 FIRE", "red"
+        );
+        playSound("fire_damage");
+        state.hazardDamageStep = 1;
+        state.hazardDamageTimer = p.millis();
+        if (state.hp[playerIdx] <= 0) {
+          state.hp[playerIdx] = 0;
+          state.lastHitPlayer = state.currentPlayer;
+          state.phase = "victory";
+          state.victoryTimer = p.millis();
+        }
+        return;
+      } else {
+        // No fire damage — skip to storm
+        state.hazardDamageStep = 1;
+        state.hazardDamageTimer = p.millis();
+      }
+    }
+
+    if (state.hazardDamageStep === 1) {
+      // Storm check
+      if (state.stormActive) {
+        if (state.lightningTarget === -1) {
+          // Pick a random non-destroyed building
+          const eligible = state.buildings
+            .map((b, i) => ({ b, i }))
+            .filter(({ b }) => b.height > 0);
+          if (eligible.length > 0) {
+            state.lightningTarget = eligible[Math.floor(Math.random() * eligible.length)].i;
+          }
+          state.hazardDamageTimer = p.millis();
+          playSound("thunder");
+        }
+
+        const stormElapsed = p.millis() - state.hazardDamageTimer;
+        if (stormElapsed < STORM_LIGHTNING_DELAY_MS) return; // wait for lightning visual
+
+        // Check if gorilla is on the struck building
+        const gBIdx = findBuildingUnderGorilla(state.gorillas[playerIdx], state.buildings);
+        if (state.lightningTarget >= 0 && gBIdx === state.lightningTarget) {
+          state.hp[playerIdx] -= 1;
+          setFloatingText(
+            state.gorillas[playerIdx].x + GORILLA_WIDTH / 2,
+            state.gorillas[playerIdx].y - 5,
+            "-1 ZAP", "red"
+          );
+          playSound("fire_damage");
+          if (state.hp[playerIdx] <= 0) {
+            state.hp[playerIdx] = 0;
+            state.lastHitPlayer = state.currentPlayer;
+            state.phase = "victory";
+            state.victoryTimer = p.millis();
+            return;
+          }
+        }
+
+        state.hazardDamageStep = 2;
+        state.hazardDamageTimer = p.millis();
+      } else {
+        state.hazardDamageStep = 2;
+      }
+    }
+
+    if (state.hazardDamageStep === 2) {
+      // Done — transition to aim
+      const delay = p.millis() - state.hazardDamageTimer;
+      if (delay < 300) return; // brief pause after last damage
+      state.lightningTarget = -1;
+      state.angle = lastAngles[state.currentPlayer - 1];
+      state.phase = "aim";
+      trySpawnCrate(state, state.wind);
+    }
+  }
+
   function resolveThrowEnd() {
     if (state.extraThrowRemaining) {
       state.extraThrowRemaining = false;
       state.isExtraThrow = true;
-      state.angle = lastAngles[state.currentPlayer - 1];
-      state.phase = "aim";
+      enterAimPhase();
     } else {
       state.isExtraThrow = false;
       // Decrement poison for the player who is about to aim
@@ -2105,9 +2222,7 @@ const sketch = (p: p5) => {
         state.gravityTurns[nextPlayerIdx]--;
       }
       switchPlayer();
-      state.angle = lastAngles[state.currentPlayer - 1];
-      state.phase = "aim";
-      trySpawnCrate(state, state.wind);
+      enterAimPhase();
     }
   }
 
