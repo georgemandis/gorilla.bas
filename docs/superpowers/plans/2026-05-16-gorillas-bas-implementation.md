@@ -1,36 +1,46 @@
 # GORILLAS.BAS RCade Port Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use
+> superpowers:subagent-driven-development (recommended) or
+> superpowers:executing-plans to implement this plan task-by-task. Steps use
+> checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Implement a two-player turn-based banana-throwing game faithful to the original GORILLAS.BAS, running on the RCade arcade cabinet with spinner and button controls.
+**Goal:** Implement a two-player turn-based banana-throwing game faithful to the
+original GORILLAS.BAS, running on the RCade arcade cabinet with spinner and
+button controls.
 
-**Architecture:** State-machine-driven game loop in P5.js instance mode. Game logic separated into focused modules (physics, collision, city generation, input, UI). Geometry-based collision detection against stored building/gorilla data structures.
+**Architecture:** State-machine-driven game loop in P5.js instance mode. Game
+logic separated into focused modules (physics, collision, city generation,
+input, UI). Geometry-based collision detection against stored building/gorilla
+data structures.
 
-**Tech Stack:** P5.js, TypeScript, Vite, @rcade/plugin-input-classic, @rcade/plugin-input-spinners
+**Tech Stack:** P5.js, TypeScript, Vite, @rcade/plugin-input-classic,
+@rcade/plugin-input-spinners
 
 ---
 
 ## File Map
 
-| File | Responsibility |
-|------|---------------|
-| `src/types.ts` | All TypeScript interfaces and type definitions |
-| `src/config.ts` | Game constants, gravity presets, colors, tuning values |
-| `src/names.ts` | Random name word lists and generator |
-| `src/input.ts` | Input abstraction wrapping RCade plugins |
-| `src/physics.ts` | Projectile position calculation |
-| `src/collision.ts` | Geometry-based hit detection |
-| `src/city.ts` | Cityscape generation algorithm |
-| `src/gorilla.ts` | Gorilla rendering (3 arm states) |
-| `src/ui.ts` | HUD, angle indicator, power meter, wind arrow, sun, menus |
-| `src/sound.ts` | Sound stub (no-op for MVP, wired up later) |
-| `src/sketch.ts` | P5.js entry point, state machine, game loop |
+| File               | Responsibility                                            |
+| ------------------ | --------------------------------------------------------- |
+| `src/types.ts`     | All TypeScript interfaces and type definitions            |
+| `src/config.ts`    | Game constants, gravity presets, colors, tuning values    |
+| `src/names.ts`     | Random name word lists and generator                      |
+| `src/input.ts`     | Input abstraction wrapping RCade plugins                  |
+| `src/physics.ts`   | Projectile position calculation                           |
+| `src/collision.ts` | Geometry-based hit detection                              |
+| `src/city.ts`      | Cityscape generation algorithm                            |
+| `src/gorilla.ts`   | Gorilla rendering (3 arm states)                          |
+| `src/ui.ts`        | HUD, angle indicator, power meter, wind arrow, sun, menus |
+| `src/sound.ts`     | Sound stub (no-op for MVP, wired up later)                |
+| `src/sketch.ts`    | P5.js entry point, state machine, game loop               |
 
 ---
 
 ## Task 1: Project Setup & Dependencies
 
 **Files:**
+
 - Modify: `src/sketch.ts` (replace template content)
 - Create: `src/types.ts`
 - Create: `src/config.ts`
@@ -214,7 +224,11 @@ export const MAX_BUILDING_WIDTH = 50;
 
 // Target scores
 export const TARGET_SCORE_OPTIONS = [1, 3, 5, 7];
-export const GRAVITY_PRESET_OPTIONS: GravityPreset[] = ["moon", "earth", "jupiter"];
+export const GRAVITY_PRESET_OPTIONS: GravityPreset[] = [
+  "moon",
+  "earth",
+  "jupiter",
+];
 
 // Sun
 export const SUN_X = WIDTH / 2;
@@ -226,8 +240,8 @@ export const SUN_RADIUS = 12;
 
 ```typescript
 import p5 from "p5";
-import type { GameState, GamePhase } from "./types";
-import { WIDTH, HEIGHT } from "./config";
+import type { GamePhase, GameState } from "./types";
+import { HEIGHT, WIDTH } from "./config";
 
 function createInitialState(): GameState {
   return {
@@ -325,6 +339,7 @@ git add -A && git commit -m "feat: project setup with types, config, and state m
 ## Task 2: Input Abstraction
 
 **Files:**
+
 - Create: `src/input.ts`
 - Create: `src/names.ts`
 
@@ -334,7 +349,10 @@ This wraps both RCade input plugins into a clean interface the game can use.
 
 ```typescript
 import { PLAYER_1, PLAYER_2, SYSTEM } from "@rcade/plugin-input-classic";
-import { PLAYER_1 as SPINNER_1, PLAYER_2 as SPINNER_2 } from "@rcade/plugin-input-spinners";
+import {
+  PLAYER_1 as SPINNER_1,
+  PLAYER_2 as SPINNER_2,
+} from "@rcade/plugin-input-spinners";
 import { DEGREES_PER_STEP } from "./config";
 
 export interface PlayerInput {
@@ -379,7 +397,9 @@ export function getSystemInput(): SystemInput {
 
 ```typescript
 // Sound stub — no-op for MVP. Wire up Web Audio or p5.sound later.
-export function playSound(_name: "throw" | "explosion" | "victory" | "hit"): void {
+export function playSound(
+  _name: "throw" | "explosion" | "victory" | "hit",
+): void {
   // No-op
 }
 ```
@@ -388,19 +408,64 @@ export function playSound(_name: "throw" | "explosion" | "victory" | "hit"): voi
 
 ```typescript
 const ADJECTIVES = [
-  "Cosmic", "Thunder", "Mighty", "Shadow", "Iron",
-  "Golden", "Raging", "Silent", "Neon", "Turbo",
-  "Atomic", "Blazing", "Crystal", "Doom", "Electric",
-  "Frozen", "Hyper", "Laser", "Mega", "Phantom",
-  "Radical", "Steel", "Ultra", "Venom", "Wild",
+  "Atomic",
+  "Blazing",
+  "Cosmic",
+  "Crystal",
+  "Doom",
+  "Dr.",
+  "Electric",
+  "Frozen",
+  "Golden",
+  "Hyper",
+  "Iron",
+  "Laser",
+  "Mega",
+  "Mighty",
+  "Mx.",
+  "Neon",
+  "Phantom",
+  "Radical",
+  "Raging",
+  "Shadow",
+  "Silent",
+  "Steel",
+  "The",
+  "Thunder",
+  "Turbo",
+  "Ultra",
+  "Venom",
+  "Wild",
 ];
 
 const NOUNS = [
-  "Kong", "Ape", "Gorilla", "Chimp", "Primate",
-  "Banana", "Monkey", "Yeti", "Beast", "Titan",
-  "Crusher", "Slammer", "Blaster", "Hurler", "Champ",
-  "Rocket", "Storm", "Fist", "Fury", "Legend",
-  "Warrior", "Striker", "Bomber", "Tosser", "Wizard",
+  "Ape",
+  "Banana",
+  "Beast",
+  "Blaster",
+  "Bomber",
+  "Bubbles",
+  "Champ",
+  "Chimp",
+  "Crusher",
+  "Fist",
+  "Fury",
+  "Gorilla",
+  "Simian",
+  "Hurler",
+  "Kong",
+  "Legend",
+  "Monkey",
+  "Primate",
+  "Rocket",
+  "Slammer",
+  "Storm",
+  "Striker",
+  "Titan",
+  "Tosser",
+  "Warrior",
+  "Wizard",
+  "Yeti",
 ];
 
 export function randomName(): string {
@@ -429,6 +494,7 @@ git add src/input.ts src/sound.ts src/names.ts && git commit -m "feat: add input
 ## Task 3: Cityscape Generation
 
 **Files:**
+
 - Create: `src/city.ts`
 
 - [ ] **Step 1: Create src/city.ts**
@@ -436,13 +502,13 @@ git add src/input.ts src/sound.ts src/names.ts && git commit -m "feat: add input
 ```typescript
 import type { Building, GameWindow } from "./types";
 import {
-  WIDTH,
   BOTTOM_LINE,
-  MIN_BUILDING_WIDTH,
-  MAX_BUILDING_WIDTH,
   BUILDING_COLORS,
-  WINDOW_COLOR_LIT,
   GORILLA_HEIGHT,
+  MAX_BUILDING_WIDTH,
+  MIN_BUILDING_WIDTH,
+  WIDTH,
+  WINDOW_COLOR_LIT,
 } from "./config";
 
 type SlopeType = "up" | "down" | "v" | "inv_v" | "v2" | "inv_v2";
@@ -479,16 +545,25 @@ export function generateCityscape(): Building[] {
         break;
     }
 
-    const bWidth = MIN_BUILDING_WIDTH + Math.floor(Math.random() * (MAX_BUILDING_WIDTH - MIN_BUILDING_WIDTH));
+    const bWidth = MIN_BUILDING_WIDTH +
+      Math.floor(Math.random() * (MAX_BUILDING_WIDTH - MIN_BUILDING_WIDTH));
     const actualWidth = Math.min(bWidth, WIDTH - x - 2);
 
     let bHeight = Math.floor(Math.random() * 80) + newHt;
     if (bHeight < htInc) bHeight = htInc;
-    if (BOTTOM_LINE - bHeight < maxBuildingTop) bHeight = BOTTOM_LINE - maxBuildingTop;
+    if (BOTTOM_LINE - bHeight < maxBuildingTop) {
+      bHeight = BOTTOM_LINE - maxBuildingTop;
+    }
     if (bHeight < 20) bHeight = 20;
 
-    const color = BUILDING_COLORS[Math.floor(Math.random() * BUILDING_COLORS.length)];
-    const windows = generateWindows(x, BOTTOM_LINE - bHeight, actualWidth, bHeight);
+    const color =
+      BUILDING_COLORS[Math.floor(Math.random() * BUILDING_COLORS.length)];
+    const windows = generateWindows(
+      x,
+      BOTTOM_LINE - bHeight,
+      actualWidth,
+      bHeight,
+    );
 
     buildings.push({
       x,
@@ -506,7 +581,12 @@ export function generateCityscape(): Building[] {
   return buildings;
 }
 
-function generateWindows(bx: number, by: number, bw: number, bh: number): GameWindow[] {
+function generateWindows(
+  bx: number,
+  by: number,
+  bw: number,
+  bh: number,
+): GameWindow[] {
   const windows: GameWindow[] = [];
   const wWidth = 3;
   const wHeight = 5;
@@ -526,7 +606,9 @@ function generateWindows(bx: number, by: number, bw: number, bh: number): GameWi
   return windows;
 }
 
-export function placeGorillas(buildings: Building[]): [{ x: number; y: number }, { x: number; y: number }] {
+export function placeGorillas(
+  buildings: Building[],
+): [{ x: number; y: number }, { x: number; y: number }] {
   const lastIdx = buildings.length - 1;
 
   // Player 1: 2nd or 3rd building from left
@@ -579,6 +661,7 @@ git add src/city.ts && git commit -m "feat: add cityscape generation with buildi
 ## Task 4: Physics & Collision
 
 **Files:**
+
 - Create: `src/physics.ts`
 - Create: `src/collision.ts`
 
@@ -592,7 +675,7 @@ export function createProjectile(
   startX: number,
   startY: number,
   angleDegrees: number,
-  power: number
+  power: number,
 ): Projectile {
   const angleRad = (angleDegrees * Math.PI) / 180;
   const velocity = power * VELOCITY_SCALE;
@@ -610,10 +693,11 @@ export function createProjectile(
 export function getProjectilePositionWithGravity(
   proj: Projectile,
   wind: number,
-  gravity: number
+  gravity: number,
 ): { x: number; y: number } {
   const x = proj.startX + proj.vx * proj.t + 0.5 * (wind / 5) * proj.t * proj.t;
-  const y = proj.startY - proj.vy * proj.t * Y_SCALE + 0.5 * gravity * proj.t * proj.t * Y_SCALE;
+  const y = proj.startY - proj.vy * proj.t * Y_SCALE +
+    0.5 * gravity * proj.t * proj.t * Y_SCALE;
   return { x, y };
 }
 
@@ -626,7 +710,15 @@ export function advanceProjectile(proj: Projectile): void {
 
 ```typescript
 import type { Building, Gorilla } from "./types";
-import { WIDTH, HEIGHT, MAX_FLIGHT_T, SUN_X, SUN_Y, SUN_RADIUS, BOTTOM_LINE } from "./config";
+import {
+  BOTTOM_LINE,
+  HEIGHT,
+  MAX_FLIGHT_T,
+  SUN_RADIUS,
+  SUN_X,
+  SUN_Y,
+  WIDTH,
+} from "./config";
 
 export type CollisionResult =
   | { type: "none" }
@@ -640,7 +732,7 @@ export function checkCollision(
   y: number,
   t: number,
   buildings: Building[],
-  gorillas: [Gorilla, Gorilla]
+  gorillas: [Gorilla, Gorilla],
 ): CollisionResult {
   // Check max flight time
   if (t >= MAX_FLIGHT_T) {
@@ -709,13 +801,14 @@ git add src/physics.ts src/collision.ts && git commit -m "feat: add projectile p
 ## Task 5: Gorilla Rendering
 
 **Files:**
+
 - Create: `src/gorilla.ts`
 
 - [ ] **Step 1: Create src/gorilla.ts**
 
 ```typescript
 import p5 from "p5";
-import type { Gorilla, ArmState } from "./types";
+import type { ArmState, Gorilla } from "./types";
 
 const GORILLA_COLOR = "#8B4513"; // brown
 const EYE_COLOR = "#FFFFFF";
@@ -789,6 +882,7 @@ git add src/gorilla.ts && git commit -m "feat: add gorilla rendering with three 
 ## Task 6: UI Rendering (HUD, Power Meter, Angle Indicator, Sun, Wind)
 
 **Files:**
+
 - Create: `src/ui.ts`
 
 - [ ] **Step 1: Create src/ui.ts**
@@ -797,17 +891,17 @@ git add src/gorilla.ts && git commit -m "feat: add gorilla rendering with three 
 import p5 from "p5";
 import type { GameState } from "./types";
 import {
-  WIDTH,
-  HEIGHT,
-  POWER_METER_WIDTH,
-  POWER_METER_HEIGHT,
   ANGLE_ARROW_LENGTH,
+  BOTTOM_LINE,
+  GORILLA_HEIGHT,
+  GORILLA_WIDTH,
+  HEIGHT,
+  POWER_METER_HEIGHT,
+  POWER_METER_WIDTH,
+  SUN_RADIUS,
   SUN_X,
   SUN_Y,
-  SUN_RADIUS,
-  BOTTOM_LINE,
-  GORILLA_WIDTH,
-  GORILLA_HEIGHT,
+  WIDTH,
 } from "./config";
 
 export function drawScores(p: p5, state: GameState): void {
@@ -863,7 +957,7 @@ export function drawPowerMeter(p: p5, state: GameState): void {
       meterX + 1,
       meterY + POWER_METER_HEIGHT - i,
       meterX + POWER_METER_WIDTH - 1,
-      meterY + POWER_METER_HEIGHT - i
+      meterY + POWER_METER_HEIGHT - i,
     );
   }
 
@@ -889,7 +983,7 @@ export function drawSun(p: p5, shocked: boolean): void {
       SUN_X + Math.cos(angle) * (SUN_RADIUS + 2),
       SUN_Y + Math.sin(angle) * (SUN_RADIUS + 2),
       SUN_X + Math.cos(angle) * (SUN_RADIUS + 6),
-      SUN_Y + Math.sin(angle) * (SUN_RADIUS + 6)
+      SUN_Y + Math.sin(angle) * (SUN_RADIUS + 6),
     );
   }
 
@@ -929,7 +1023,12 @@ export function drawWindArrow(p: p5, wind: number): void {
   p.line(endX, y, endX + dir * 3, y + 2);
 }
 
-export function drawExplosion(p: p5, x: number, y: number, progress: number): void {
+export function drawExplosion(
+  p: p5,
+  x: number,
+  y: number,
+  progress: number,
+): void {
   // progress goes 0→1 (expand) then 1→0 (contract)
   const radius = progress * 15;
   p.fill(255, 100, 0, 200);
@@ -958,7 +1057,7 @@ export function drawTitleScreen(p: p5): void {
 export function drawConfigScreen(
   p: p5,
   state: GameState,
-  cursorPos: number
+  cursorPos: number,
 ): void {
   p.fill(255, 200, 50);
   p.textSize(12);
@@ -1005,7 +1104,8 @@ export function drawConfigScreen(
 
     p.fill(isSelected ? 255 : 150);
     p.text(`${settings[i].label}:`, 40, y);
-    if (isSelected) { p.fill(255, 255, 100); } else { p.fill(200); }
+    if (isSelected) p.fill(255, 255, 100);
+    else p.fill(200);
     p.textAlign(p.RIGHT, p.TOP);
     p.text(`< ${settings[i].value} >`, WIDTH - 40, y);
     p.textAlign(p.LEFT, p.TOP);
@@ -1027,10 +1127,20 @@ export function drawGameOver(p: p5, state: GameState): void {
 
   p.fill(255);
   p.textSize(10);
-  p.text(`${state.playerNames[0]}: ${state.scores[0]}`, WIDTH / 2, HEIGHT / 2 - 10);
-  p.text(`${state.playerNames[1]}: ${state.scores[1]}`, WIDTH / 2, HEIGHT / 2 + 10);
+  p.text(
+    `${state.playerNames[0]}: ${state.scores[0]}`,
+    WIDTH / 2,
+    HEIGHT / 2 - 10,
+  );
+  p.text(
+    `${state.playerNames[1]}: ${state.scores[1]}`,
+    WIDTH / 2,
+    HEIGHT / 2 + 10,
+  );
 
-  const winner = state.scores[0] >= state.targetScore ? state.playerNames[0] : state.playerNames[1];
+  const winner = state.scores[0] >= state.targetScore
+    ? state.playerNames[0]
+    : state.playerNames[1];
   p.fill(255, 200, 50);
   p.text(`${winner} wins!`, WIDTH / 2, HEIGHT / 2 + 35);
 
@@ -1057,15 +1167,18 @@ git add src/ui.ts && git commit -m "feat: add UI rendering (scores, power meter,
 ## Task 7: Cityscape Rendering
 
 **Files:**
+
 - Modify: `src/sketch.ts` (add city drawing to the game loop)
 
 - [ ] **Step 1: Add city rendering function to sketch.ts**
 
-Add a `drawCity` function that renders all buildings and their windows. This will be called during all gameplay states (aim, power, flight, explosion, victory).
+Add a `drawCity` function that renders all buildings and their windows. This
+will be called during all gameplay states (aim, power, flight, explosion,
+victory).
 
 ```typescript
 import type { Building } from "./types";
-import { BOTTOM_LINE, WINDOW_COLOR_LIT, WINDOW_COLOR_DARK } from "./config";
+import { BOTTOM_LINE, WINDOW_COLOR_DARK, WINDOW_COLOR_LIT } from "./config";
 
 function drawCity(p: p5, buildings: Building[]): void {
   for (const b of buildings) {
@@ -1100,19 +1213,24 @@ git add src/sketch.ts && git commit -m "feat: add city rendering to game loop"
 ## Task 8: Wire Up Complete Game Loop
 
 **Files:**
+
 - Modify: `src/sketch.ts` (full state machine implementation)
 
-This is the largest task — it wires everything together into the complete game loop with all state transitions.
+This is the largest task — it wires everything together into the complete game
+loop with all state transitions.
 
 - [ ] **Step 1: Rewrite src/sketch.ts with full state machine**
 
-Replace the skeleton with the complete game loop. This imports all modules and implements every state transition:
+Replace the skeleton with the complete game loop. This imports all modules and
+implements every state transition:
 
 - TITLE: renders title screen, waits for START → CONFIG
-- CONFIG: renders config screen, handles DPAD navigation, spinner re-rolls, START → ROUND_START
+- CONFIG: renders config screen, handles DPAD navigation, spinner re-rolls,
+  START → ROUND_START
 - ROUND_START: generates city, places gorillas, sets wind, timer → AIM
 - AIM: renders gameplay scene + angle indicator, reads spinner, A press → POWER
-- POWER: renders gameplay scene + power meter, oscillates meter, A release → FLIGHT
+- POWER: renders gameplay scene + power meter, oscillates meter, A release →
+  FLIGHT
 - FLIGHT: advances projectile physics each frame, checks collision, draws banana
 - EXPLOSION: timed expanding/contracting circle animation → AIM or VICTORY
 - VICTORY: gorilla dance animation → ROUND_START or GAME_OVER
@@ -1124,23 +1242,45 @@ The full implementation:
 import p5 from "p5";
 import type { GameState, Projectile } from "./types";
 import {
-  WIDTH, HEIGHT, INITIAL_ANGLE_P1, INITIAL_ANGLE_P2,
-  GRAVITY_VALUES, POWER_CYCLE_MS, POWER_DEAD_ZONE_MS,
-  EXPLOSION_EXPAND_MS, EXPLOSION_CONTRACT_MS, EXPLOSION_RADIUS,
-  VICTORY_DURATION_MS, ROUND_START_DELAY_MS,
-  TARGET_SCORE_OPTIONS, GRAVITY_PRESET_OPTIONS,
-  GORILLA_WIDTH, GORILLA_HEIGHT, BOTTOM_LINE,
-  WINDOW_COLOR_LIT, WINDOW_COLOR_DARK,
+  BOTTOM_LINE,
+  EXPLOSION_CONTRACT_MS,
+  EXPLOSION_EXPAND_MS,
+  EXPLOSION_RADIUS,
+  GORILLA_HEIGHT,
+  GORILLA_WIDTH,
+  GRAVITY_PRESET_OPTIONS,
+  GRAVITY_VALUES,
+  HEIGHT,
+  INITIAL_ANGLE_P1,
+  INITIAL_ANGLE_P2,
+  POWER_CYCLE_MS,
+  POWER_DEAD_ZONE_MS,
+  ROUND_START_DELAY_MS,
+  TARGET_SCORE_OPTIONS,
+  VICTORY_DURATION_MS,
+  WIDTH,
+  WINDOW_COLOR_DARK,
+  WINDOW_COLOR_LIT,
 } from "./config";
 import { getPlayerInput, getSystemInput } from "./input";
-import { generateCityscape, placeGorillas, generateWind } from "./city";
-import { createProjectile, getProjectilePositionWithGravity, advanceProjectile } from "./physics";
+import { generateCityscape, generateWind, placeGorillas } from "./city";
+import {
+  advanceProjectile,
+  createProjectile,
+  getProjectilePositionWithGravity,
+} from "./physics";
 import { checkCollision } from "./collision";
 import { drawGorilla } from "./gorilla";
 import {
-  drawScores, drawAngleIndicator, drawPowerMeter, drawSun,
-  drawWindArrow, drawExplosion, drawTitleScreen, drawConfigScreen,
+  drawAngleIndicator,
+  drawConfigScreen,
+  drawExplosion,
   drawGameOver,
+  drawPowerMeter,
+  drawScores,
+  drawSun,
+  drawTitleScreen,
+  drawWindArrow,
 } from "./ui";
 import { randomName } from "./names";
 import type { Building } from "./types";
@@ -1151,8 +1291,22 @@ function createInitialState(): GameState {
     currentPlayer: 1,
     buildings: [],
     gorillas: [
-      { x: 0, y: 0, width: GORILLA_WIDTH, height: GORILLA_HEIGHT, playerNum: 1, armState: "down" },
-      { x: 0, y: 0, width: GORILLA_WIDTH, height: GORILLA_HEIGHT, playerNum: 2, armState: "down" },
+      {
+        x: 0,
+        y: 0,
+        width: GORILLA_WIDTH,
+        height: GORILLA_HEIGHT,
+        playerNum: 1,
+        armState: "down",
+      },
+      {
+        x: 0,
+        y: 0,
+        width: GORILLA_WIDTH,
+        height: GORILLA_HEIGHT,
+        playerNum: 2,
+        armState: "down",
+      },
     ],
     wind: 0,
     gravity: 9.8,
@@ -1265,7 +1419,7 @@ const sketch = (p: p5) => {
   function updateConfig(
     p1: ReturnType<typeof getPlayerInput>,
     p2: ReturnType<typeof getPlayerInput>,
-    sys: ReturnType<typeof getSystemInput>
+    sys: ReturnType<typeof getSystemInput>,
   ) {
     // Spinner re-rolls names
     if (p1.spinnerDelta !== 0) {
@@ -1281,10 +1435,14 @@ const sketch = (p: p5) => {
     const curLeft = p1.dpadLeft || p2.dpadLeft;
     const curRight = p1.dpadRight || p2.dpadRight;
 
-    const dpad = (curUp && !prevDpadUp) ? "up"
-      : (curDown && !prevDpadDown) ? "down"
-      : (curLeft && !prevDpadLeft) ? "left"
-      : (curRight && !prevDpadRight) ? "right"
+    const dpad = (curUp && !prevDpadUp)
+      ? "up"
+      : (curDown && !prevDpadDown)
+      ? "down"
+      : (curLeft && !prevDpadLeft)
+      ? "left"
+      : (curRight && !prevDpadRight)
+      ? "right"
       : null;
 
     prevDpadUp = curUp;
@@ -1300,12 +1458,14 @@ const sketch = (p: p5) => {
       if (configCursor === 0) {
         // Cycle target score
         const idx = TARGET_SCORE_OPTIONS.indexOf(state.targetScore);
-        const newIdx = (idx + dir + TARGET_SCORE_OPTIONS.length) % TARGET_SCORE_OPTIONS.length;
+        const newIdx = (idx + dir + TARGET_SCORE_OPTIONS.length) %
+          TARGET_SCORE_OPTIONS.length;
         state.targetScore = TARGET_SCORE_OPTIONS[newIdx];
       } else {
         // Cycle gravity
         const idx = GRAVITY_PRESET_OPTIONS.indexOf(state.gravityPreset);
-        const newIdx = (idx + dir + GRAVITY_PRESET_OPTIONS.length) % GRAVITY_PRESET_OPTIONS.length;
+        const newIdx = (idx + dir + GRAVITY_PRESET_OPTIONS.length) %
+          GRAVITY_PRESET_OPTIONS.length;
         state.gravityPreset = GRAVITY_PRESET_OPTIONS[newIdx];
         state.gravity = GRAVITY_VALUES[state.gravityPreset];
       }
@@ -1333,7 +1493,9 @@ const sketch = (p: p5) => {
 
   function updateRoundStart() {
     if (p.millis() - state.roundStartTimer > ROUND_START_DELAY_MS) {
-      state.angle = state.currentPlayer === 1 ? INITIAL_ANGLE_P1 : INITIAL_ANGLE_P2;
+      state.angle = state.currentPlayer === 1
+        ? INITIAL_ANGLE_P1
+        : INITIAL_ANGLE_P2;
       state.phase = "aim";
     }
   }
@@ -1363,7 +1525,8 @@ const sketch = (p: p5) => {
     const elapsed = p.millis() - state.powerDeadZoneTimer;
     // Use sine wave for smooth oscillation: period = POWER_CYCLE_MS
     // Starts at 0, goes to 1, back to 0 in one cycle
-    const cycleProgress = ((elapsed - POWER_DEAD_ZONE_MS) % POWER_CYCLE_MS) / POWER_CYCLE_MS;
+    const cycleProgress = ((elapsed - POWER_DEAD_ZONE_MS) % POWER_CYCLE_MS) /
+      POWER_CYCLE_MS;
     state.powerMeterValue = Math.abs(Math.sin(cycleProgress * Math.PI));
 
     // Check for A release (after dead zone)
@@ -1378,7 +1541,12 @@ const sketch = (p: p5) => {
     const startX = gorilla.x + GORILLA_WIDTH / 2;
     const startY = gorilla.y;
 
-    state.projectile = createProjectile(startX, startY, state.angle, state.power);
+    state.projectile = createProjectile(
+      startX,
+      startY,
+      state.angle,
+      state.power,
+    );
     state.phase = "flight";
     bananaRotation = 0;
 
@@ -1392,8 +1560,18 @@ const sketch = (p: p5) => {
     advanceProjectile(state.projectile);
     bananaRotation = (bananaRotation + 0.3) % (Math.PI * 2);
 
-    const pos = getProjectilePositionWithGravity(state.projectile, state.wind, state.gravity);
-    const result = checkCollision(pos.x, pos.y, state.projectile.t, state.buildings, state.gorillas);
+    const pos = getProjectilePositionWithGravity(
+      state.projectile,
+      state.wind,
+      state.gravity,
+    );
+    const result = checkCollision(
+      pos.x,
+      pos.y,
+      state.projectile.t,
+      state.buildings,
+      state.gorillas,
+    );
 
     switch (result.type) {
       case "none":
@@ -1404,7 +1582,9 @@ const sketch = (p: p5) => {
       case "miss":
         state.projectile = null;
         switchPlayer();
-        state.angle = state.currentPlayer === 1 ? INITIAL_ANGLE_P1 : INITIAL_ANGLE_P2;
+        state.angle = state.currentPlayer === 1
+          ? INITIAL_ANGLE_P1
+          : INITIAL_ANGLE_P2;
         state.phase = "aim";
         break;
       case "building":
@@ -1452,7 +1632,9 @@ const sketch = (p: p5) => {
       } else {
         // Building hit — switch player
         switchPlayer();
-        state.angle = state.currentPlayer === 1 ? INITIAL_ANGLE_P1 : INITIAL_ANGLE_P2;
+        state.angle = state.currentPlayer === 1
+          ? INITIAL_ANGLE_P1
+          : INITIAL_ANGLE_P2;
         state.phase = "aim";
       }
     }
@@ -1478,7 +1660,10 @@ const sketch = (p: p5) => {
 
     if (elapsed > VICTORY_DURATION_MS) {
       // Check if game over
-      if (state.scores[0] >= state.targetScore || state.scores[1] >= state.targetScore) {
+      if (
+        state.scores[0] >= state.targetScore ||
+        state.scores[1] >= state.targetScore
+      ) {
         state.phase = "game_over";
       } else {
         // Loser goes first next round
@@ -1523,7 +1708,11 @@ const sketch = (p: p5) => {
 
   function drawBanana(p: p5) {
     if (!state.projectile) return;
-    const pos = getProjectilePositionWithGravity(state.projectile, state.wind, state.gravity);
+    const pos = getProjectilePositionWithGravity(
+      state.projectile,
+      state.wind,
+      state.gravity,
+    );
 
     // Only draw if on screen
     if (pos.y < -50 || pos.x < -10 || pos.x > WIDTH + 10) return;
@@ -1555,6 +1744,7 @@ cd /Users/georgemandis/Projects/recurse/2026/gorillas_bas && bun run dev
 ```
 
 Open the RCade emulator URL. Verify:
+
 - Title screen shows "GORILLAS.BAS" and "Press START"
 - Pressing 1 (one player start) transitions to config screen
 
@@ -1569,6 +1759,7 @@ git add src/sketch.ts && git commit -m "feat: wire up complete game loop with al
 ## Task 9: Playtest & Fix Issues
 
 **Files:**
+
 - Modify: various files as needed
 
 - [ ] **Step 1: Run dev server and play through a full game**
@@ -1578,6 +1769,7 @@ cd /Users/georgemandis/Projects/recurse/2026/gorillas_bas && bun run dev
 ```
 
 Test the following flow:
+
 1. Title → START → Config screen
 2. Config: spin to re-roll names, DPAD to change settings, START to begin
 3. Round starts: city generates, gorillas placed, wind arrow shown
@@ -1592,6 +1784,7 @@ Test the following flow:
 - [ ] **Step 2: Fix any bugs found during playtest**
 
 Common issues to watch for:
+
 - Angle arrow direction not matching throw direction
 - Power meter not visible or oscillating incorrectly
 - Banana trajectory not accounting for player side correctly
@@ -1609,15 +1802,19 @@ git add -A && git commit -m "fix: playtest fixes for game loop"
 ## Task 10: Polish & Edge Cases
 
 **Files:**
+
 - Modify: `src/sketch.ts`, `src/ui.ts` as needed
 
 - [ ] **Step 1: Handle edge case — banana thrown straight down or backwards**
 
-Verify the physics handles all angle ranges gracefully and the banana doesn't get stuck in the throwing gorilla's own building immediately.
+Verify the physics handles all angle ranges gracefully and the banana doesn't
+get stuck in the throwing gorilla's own building immediately.
 
-- [ ] **Step 2: Ensure gorilla can't be placed off-screen on very narrow cityscapes**
+- [ ] **Step 2: Ensure gorilla can't be placed off-screen on very narrow
+      cityscapes**
 
-Add bounds checking in `placeGorillas` to clamp gorilla positions within screen bounds.
+Add bounds checking in `placeGorillas` to clamp gorilla positions within screen
+bounds.
 
 - [ ] **Step 3: Final build verification**
 
@@ -1637,17 +1834,18 @@ git add -A && git commit -m "fix: polish edge cases"
 
 ## Summary
 
-| Task | What it builds | Key files |
-|------|---------------|-----------|
-| 1 | Project setup, types, config | types.ts, config.ts, sketch.ts skeleton |
-| 2 | Input abstraction + names | input.ts, names.ts |
-| 3 | Cityscape generation | city.ts |
-| 4 | Physics & collision | physics.ts, collision.ts |
-| 5 | Gorilla rendering | gorilla.ts |
-| 6 | UI components | ui.ts |
-| 7 | City rendering in game loop | sketch.ts |
-| 8 | Full game loop wiring | sketch.ts (complete rewrite) |
-| 9 | Playtest & fix | various |
-| 10 | Polish & edge cases | various |
+| Task | What it builds               | Key files                               |
+| ---- | ---------------------------- | --------------------------------------- |
+| 1    | Project setup, types, config | types.ts, config.ts, sketch.ts skeleton |
+| 2    | Input abstraction + names    | input.ts, names.ts                      |
+| 3    | Cityscape generation         | city.ts                                 |
+| 4    | Physics & collision          | physics.ts, collision.ts                |
+| 5    | Gorilla rendering            | gorilla.ts                              |
+| 6    | UI components                | ui.ts                                   |
+| 7    | City rendering in game loop  | sketch.ts                               |
+| 8    | Full game loop wiring        | sketch.ts (complete rewrite)            |
+| 9    | Playtest & fix               | various                                 |
+| 10   | Polish & edge cases          | various                                 |
 
-Tasks 1-6 are independent modules that can be built in parallel. Task 7-8 integrate everything. Tasks 9-10 are sequential testing/fixing passes.
+Tasks 1-6 are independent modules that can be built in parallel. Task 7-8
+integrate everything. Tasks 9-10 are sequential testing/fixing passes.
