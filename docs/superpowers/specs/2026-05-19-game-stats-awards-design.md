@@ -63,20 +63,26 @@ Simple mutation functions exported from `stats.ts`:
 
 ### Recording Locations in sketch.ts
 
+**Ordering in `launchBanana()`:** `consumeSelectedPowerUp` is called first. Then `recordPowerUp` is called immediately after (before the shield/jump early-returns, so shield and jump are counted as power-ups used). Then `recordShield`/`recordJump` are called in their respective early-return blocks. `recordThrow` is called *after* the shield/jump early-returns, at the point where `state.projectile` is created, using `effectivePower` (which accounts for Giant power reduction).
+
+**Kill recording at all kill sites:** `recordKill` and `recordSelfKill` must be called at every location that sets HP to 0 and transitions to victory — not just `updateExplosion`. This includes hazard damage (fire/lightning in `updateHazardDamage`) and lava deaths (in `updateFallingGorillas`, `updateJump`, and lava activation instant-kill).
+
 | Function | Location |
 |----------|----------|
-| `recordThrow` | `launchBanana()` when projectile is created |
+| `recordPowerUp` | `launchBanana()` immediately after `consumeSelectedPowerUp` returns a type (before shield/jump returns) |
+| `recordShield` | `launchBanana()` in the shield early-return block |
+| `recordJump` | `launchBanana()` in the jump early-return block |
+| `recordThrow` | `launchBanana()` after shield/jump early-returns, at projectile creation, using `effectivePower` |
 | `recordHit` | `updateExplosion()` when `lastHitPlayer !== null` and HP decremented |
-| `recordSelfKill` | `updateExplosion()` when `lastHitPlayer === currentPlayer` and HP reaches 0 |
-| `recordKill` | `updateExplosion()` when opponent KO'd |
-| `recordFirstThrowKill` | `updateExplosion()` when kill happens and `throwsThisRound === 1` |
+| `recordSelfKill` | `updateExplosion()` when self-KO; `updateHazardDamage()` fire/lightning self-kill; lava death sites when thrower kills self |
+| `recordKill` | `updateExplosion()` when opponent KO'd; `updateHazardDamage()` fire/lightning kills; all 3 lava death sites |
+| `recordFirstThrowKill` | At every kill site, when `throwsThisRound === 1` for the killer |
 | `recordDeath("fire")` | `updateHazardDamage()` fire step when HP reaches 0 |
-| `recordDeath("lava")` | Lava death checks in `updateFallingGorillas` and `updateJump` and lava activation |
+| `recordDeath("lava")` | All 3 lava death sites: `updateFallingGorillas`, `updateJump`, lava activation instant-kill |
 | `recordDeath("lightning")` | `updateHazardDamage()` storm step when HP reaches 0 |
-| `recordPowerUp` | `launchBanana()` when `consumeSelectedPowerUp` returns a type |
-| `recordJump` | `launchBanana()` when jump activates |
-| `recordShield` | `launchBanana()` when shield activates |
 | `resetRoundThrows` | `startNewRound()` |
+
+**Note on `firstThrowKills`:** "First throw" means the first throw of any single round (when `throwsThisRound === 1`), not the first throw of the entire game. The counter accumulates across the whole game, but the award condition is simply `> 0`.
 
 ### Lifecycle
 
@@ -108,7 +114,7 @@ One award per player, selected by highest priority among applicable conditions.
 | 3 | Arms Dealer | "Loved the crates" | powerUpsUsed >= 6 | Crate |
 | 2 | Hulk Smash | "Full send every time" | avgPower > 80 | Flexed arm |
 | 2 | Butterfingers | "Gentle tosser" | avgPower < 25 && throws >= 3 | Weak arm |
-| 1 | Hoarder | "Collected but never used" | inventory.length >= 3 at game end | Pile |
+| 1 | Hoarder | "Collected but never used" | inventory.length >= 3 at end of final round | Pile |
 
 **Fallback awards** (if nothing else applies):
 - Winner: "Champion" / "Undisputed gorilla" (Trophy icon)
@@ -117,10 +123,16 @@ One award per player, selected by highest priority among applicable conditions.
 ### Selection Logic
 
 ```typescript
-function pickStatAward(stats: PlayerStats, isWinner: boolean, inventory: PowerUpType[]): Award
+function pickStatAward(stats: PlayerStats, opponentStats: PlayerStats, isWinner: boolean, inventory: PowerUpType[]): Award
 ```
 
-Iterates awards in priority order. Returns first matching. Falls back to Champion/Participant.
+Iterates awards in priority order. Returns first matching. Falls back to Champion/Participant. The `opponentStats` parameter is needed for "Floor Is Lava" (checks opponent's `deathByLava`) and "Thor's Cousin" (checks opponent's `deathByLightning`).
+
+**Call-site example in `sketch.ts`:**
+```typescript
+const p1Award = pickStatAward(gameStats.players[0], gameStats.players[1], winnerIdx === 0, state.inventory[0]);
+const p2Award = pickStatAward(gameStats.players[1], gameStats.players[0], winnerIdx === 1, state.inventory[1]);
+```
 
 Both players can receive the same award type if they both qualify — that's fine and potentially funny.
 
@@ -151,13 +163,13 @@ function pickNameAward(names: [string, string], stats: GameStats, winnerIdx: 0 |
 
 ## 4. Game Over Screen Layout
 
-336x262 pixel display. Awards appear below the existing scores/winner text.
+336x262 pixel display. Awards appear below the existing scores/winner text. **Space is tight** — the score line should be condensed to a single line (e.g., `Name1: 3  Name2: 1`) using textSize 5 to leave room for up to 3 awards plus the "Press START" prompt.
 
 ```
               GAME OVER
 
-      PlayerName1: 3  PlayerName2: 1
-           PlayerName1 wins!
+      Name1: 3  Name2: 1
+           Name1 wins!
 
       [icon] "The Sniper"            <- P1 stat award
       "Deadly accurate"
@@ -179,6 +191,8 @@ function pickNameAward(names: [string, string], stats: GameStats, winnerIdx: 0 |
 - Player label (P1/P2 color) on the left or above the award to identify whose it is
 
 ### Reveal Sequence
+
+Timing is relative to a `gameOverEnteredAt` timestamp (new field on `GameState`, set to `p.millis()` when `state.phase = "game_over"` is assigned in `sketch.ts`).
 
 1. **0ms:** "GAME OVER", scores, and winner text appear (same as current)
 2. **1000ms:** P1 stat award fades in + sound effect
@@ -236,7 +250,7 @@ Each award has a tiny (8-10px) thematic icon drawn procedurally with p5 primitiv
 | File | Changes |
 |------|---------|
 | `src/stats.ts` | **New.** `GameStats`, `PlayerStats`, recording functions, `pickStatAward`, `pickNameAward` |
-| `src/types.ts` | Add `Award` and `NameAward` interfaces |
+| `src/types.ts` | Add `Award` and `NameAward` interfaces, add `gameOverEnteredAt: number` to `GameState` |
 | `src/sound.ts` | Add 3 award sound effects |
 | `src/ui.ts` | Add `drawAwardIcon`, modify `drawGameOver` to show awards with reveal timing |
 | `src/sketch.ts` | Create/reset stats, call recording functions at game events, pass stats to `drawGameOver` |
