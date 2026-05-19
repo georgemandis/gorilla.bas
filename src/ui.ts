@@ -225,8 +225,9 @@ export function drawAngleIndicator(p: p5, state: GameState): void {
       p.noStroke();
       break;
     case "jump":
-      p.fill(255, 255, 0);
-      p.triangle(0, -4, -3, 2, 3, 2);
+      p.fill(50, 200, 80);
+      p.rect(-2, -4, 4, 5);
+      p.rect(-4, 1, 8, 2);
       break;
     case null:
     default:
@@ -657,14 +658,17 @@ export function drawInventoryHUD(p: p5, state: GameState): void {
       p.rect(panelX + 2, jumpY - 1, panelW - 4, itemH);
     }
 
-    // Jump icon (yellow triangle, gray if blocked)
+    // Jump icon (green boot shape, gray if blocked)
     if (isJumpBlocked) {
       p.fill(80, 80, 80);
     } else {
-      p.fill(255, 255, 0);
+      p.fill(50, 200, 80);
     }
     p.noStroke();
-    p.triangle(panelX + 6, jumpY + 8, panelX + 10, jumpY + 1, panelX + 14, jumpY + 8);
+    // Boot: tall part (ankle/leg)
+    p.rect(panelX + 7, jumpY + 1, 4, 6);
+    // Boot: sole (wider, extends forward)
+    p.rect(panelX + 5, jumpY + 7, 9, 2);
 
     // Jump label
     p.textSize(5);
@@ -907,8 +911,9 @@ function drawPowerUpIcon(p: p5, x: number, y: number, size: number, type: PowerU
       p.circle(x + size / 2, y + size / 2, size);
       break;
     case "jump":
-      p.fill(255, 255, 0);
-      p.triangle(x + size / 2, y, x, y + size, x + size, y + size);
+      p.fill(50, 200, 80);
+      p.rect(x + size / 4, y, size / 2, size * 0.6);
+      p.rect(x, y + size * 0.6, size, size * 0.4);
       break;
     default:
       p.fill(150);

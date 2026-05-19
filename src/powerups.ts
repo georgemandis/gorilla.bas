@@ -129,8 +129,16 @@ export function consumeSelectedPowerUp(state: GameState, playerIdx: 0 | 1): Powe
   if (state.selectedSlotIndex < inv.length) {
     inv.splice(state.selectedSlotIndex, 1);
   }
-  state.selectedPowerUp = null;
-  state.selectedSlotIndex = -2;
+  // Stay near the same position in the list
+  if (inv.length === 0) {
+    state.selectedPowerUp = null;
+    state.selectedSlotIndex = -2;
+  } else if (state.selectedSlotIndex >= inv.length) {
+    state.selectedSlotIndex = inv.length - 1;
+    state.selectedPowerUp = inv[state.selectedSlotIndex];
+  } else {
+    state.selectedPowerUp = inv[state.selectedSlotIndex];
+  }
   return selected;
 }
 
