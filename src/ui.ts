@@ -1317,23 +1317,24 @@ export function drawGameOver(
 
   p.fill(255, 80, 80);
   p.textSize(12);
-  p.textAlign(p.CENTER, p.CENTER);
+  p.textAlign(p.CENTER, p.TOP);
   p.noStroke();
-  // Top boundary: top edge of sun body (SUN_Y - SUN_RADIUS = 13)
-  p.text("GAME OVER", WIDTH / 2, 22);
+  // Top of text aligns with top of sun body (SUN_Y - SUN_RADIUS = 13)
+  p.text("GAME OVER", WIDTH / 2, 13);
 
   p.fill(255);
   p.textSize(5);
+  p.textAlign(p.CENTER, p.CENTER);
   p.text(
     `${state.playerNames[0]}: ${state.scores[0]}  ${state.playerNames[1]}: ${state.scores[1]}`,
-    WIDTH / 2, 42,
+    WIDTH / 2, 38,
   );
 
   const winnerIdx = state.scores[0] >= state.targetScore ? 0 : 1;
   const winner = state.playerNames[winnerIdx];
   p.fill(255, 230, 50);
   p.textSize(7);
-  p.text(`${winner} wins!`, WIDTH / 2, 58);
+  p.text(`${winner} wins!`, WIDTH / 2, 52);
 
   if (!awards) {
     p.fill(220);
@@ -1345,19 +1346,19 @@ export function drawGameOver(
   const p1Color: [number, number, number] = [120, 200, 255];
   const p2Color: [number, number, number] = [255, 150, 150];
 
-  let yPos = 85;
+  let yPos = 78;
   if (elapsed >= AWARD_REVEAL_1_MS) {
     const alpha = Math.min(255, ((elapsed - AWARD_REVEAL_1_MS) / AWARD_FADE_MS) * 255);
     drawAward(p, awards.p1, state.playerNames[0], p1Color, yPos, alpha);
   }
 
-  yPos = 127;
+  yPos = 120;
   if (elapsed >= AWARD_REVEAL_2_MS) {
     const alpha = Math.min(255, ((elapsed - AWARD_REVEAL_2_MS) / AWARD_FADE_MS) * 255);
     drawAward(p, awards.p2, state.playerNames[1], p2Color, yPos, alpha);
   }
 
-  yPos = 169;
+  yPos = 162;
   if (awards.bonus && elapsed >= AWARD_BONUS_MS) {
     const alpha = Math.min(255, ((elapsed - AWARD_BONUS_MS) / AWARD_FADE_MS) * 255);
     drawAward(p, awards.bonus, null, [255, 255, 255], yPos, alpha);
