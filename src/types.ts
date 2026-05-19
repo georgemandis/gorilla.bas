@@ -79,7 +79,8 @@ export type GamePhase =
   | "victory"
   | "bananality"
   | "game_over"
-  | "jump";
+  | "jump"
+  | "hazard_damage";
 
 export type GravityPreset = "moon" | "earth" | "jupiter";
 export type TimeOfDay = "day" | "night";
@@ -89,7 +90,7 @@ export type PowerUpType = "big_banana" | "two_bananas" | "ricochet" | "wrap_arou
   | "cluster_bomb" | "teleportation" | "portal" | "confetti" | "poison"
   | "ice" | "mirror" | "gravity_flip" | "shield" | "rubber" | "homing"
   | "ghost" | "giant" | "boomerang" | "drunk" | "earthquake"
-  | "demolition" | "construction" | "jump";
+  | "demolition" | "construction" | "jump" | "fire" | "lava" | "storm";
 
 export interface PowerUpCrate {
   x: number;
@@ -169,4 +170,13 @@ export interface GameState {
   jumpAnim: JumpAnim | null;
   floatingText: { x: number; y: number; label: string; color: "red" | "green"; timer: number } | null;
   startingItems: number;
+  burningBuildings: Set<number>;
+  lavaActive: boolean;
+  lavaHeight: number;
+  stormActive: boolean;
+  fizzleTimer: number;
+  fizzlePlayerIdx: 0 | 1;
+  hazardDamageStep: number;
+  hazardDamageTimer: number;
+  lightningTarget: number;
 }
