@@ -117,6 +117,9 @@ const sketch = (p: p5) => {
   let prevB2 = false;
   let savedPowerUp: import("./types").PowerUpType | null = null;
   let savedSlotIndex = -2;
+  // Per-player selection memory (persists across turns)
+  let playerSelectedPowerUp: [import("./types").PowerUpType | null, import("./types").PowerUpType | null] = [null, null];
+  let playerSelectedSlotIndex: [number, number] = [-2, -2];
   let prevStart1P = false;
   let prevStart2P = false;
   let prevTauntUp = false;
@@ -409,6 +412,8 @@ const sketch = (p: p5) => {
     state.isExtraThrow = false;
     state.selectedPowerUp = null;
     state.selectedSlotIndex = -2;
+    playerSelectedPowerUp = [null, null];
+    playerSelectedSlotIndex = [-2, -2];
     state.inventoryOpen = false;
     state.inventoryScrollOffset = 0;
     state.hp = [state.maxHP, state.maxHP];
@@ -1492,6 +1497,8 @@ const sketch = (p: p5) => {
     konamiPlayer = null;
     state.selectedPowerUp = null;
     state.selectedSlotIndex = -2;
+    playerSelectedPowerUp = [null, null];
+    playerSelectedSlotIndex = [-2, -2];
     state.inventoryOpen = false;
     state.inventoryScrollOffset = 0;
     state.extraThrowRemaining = false;
@@ -1922,9 +1929,26 @@ const sketch = (p: p5) => {
   }
 
   function switchPlayer() {
+    // Save outgoing player's selection
+    const outIdx = (state.currentPlayer - 1) as 0 | 1;
+    playerSelectedPowerUp[outIdx] = state.selectedPowerUp;
+    playerSelectedSlotIndex[outIdx] = state.selectedSlotIndex;
+
     state.currentPlayer = state.currentPlayer === 1 ? 2 : 1;
-    state.selectedPowerUp = null;
-    state.selectedSlotIndex = -2;
+
+    // Restore incoming player's selection
+    const inIdx = (state.currentPlayer - 1) as 0 | 1;
+    const inv = state.inventory[inIdx];
+    const restoredSlot = playerSelectedSlotIndex[inIdx];
+    // Validate: if they had an inventory item selected, make sure it's still valid
+    if (restoredSlot >= 0 && restoredSlot >= inv.length) {
+      // Item was consumed or inventory shrunk — fall back to normal banana
+      state.selectedPowerUp = null;
+      state.selectedSlotIndex = -2;
+    } else {
+      state.selectedPowerUp = playerSelectedPowerUp[inIdx];
+      state.selectedSlotIndex = restoredSlot;
+    }
     state.inventoryOpen = false;
     state.inventoryScrollOffset = 0;
     state.isExtraThrow = false;
