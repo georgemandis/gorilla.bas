@@ -245,17 +245,17 @@ export function applyHomingNudge(
   targetX: number,
   _wind: number,
   gravity: number
-): Projectile | null {
+): boolean {
   // Only activate after apex (screen-vy becomes positive = moving downward)
   const screenVy = -proj.vy + gravity * proj.t;
-  if (screenVy <= 0) return null; // still going up
+  if (screenVy <= 0) return false; // still going up
 
   const diff = targetX - currentPos.x;
-  if (Math.abs(diff) < 5) return null; // close enough
+  if (Math.abs(diff) < 2) return false; // close enough
 
-  // Use restartProjectile pattern to avoid position discontinuity
-  const nudgedVx = proj.vx + Math.sign(diff) * HOMING_NUDGE * 0.1;
-  return restartProjectile(proj, currentPos.x, currentPos.y, nudgedVx, -screenVy);
+  // Directly nudge vx toward target (no restart — avoids t=0 reset breaking apex check)
+  proj.vx += Math.sign(diff) * HOMING_NUDGE;
+  return true;
 }
 
 export function applyDrunkWobble(

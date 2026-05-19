@@ -12,6 +12,7 @@ import {
   BOTTOM_LINE,
   GORILLA_WIDTH,
   GORILLA_HEIGHT,
+  CITY_THEME_COLORS,
 } from "./config";
 import { drawGorilla } from "./gorilla";
 
@@ -468,7 +469,108 @@ export function drawExplosion(p: p5, x: number, y: number, progress: number, max
   p.circle(x, y, radius);
 }
 
+// Generate title screen buildings once (seeded by first call)
+let titleBuildings: { x: number; y: number; w: number; h: number; color: string; windows: { x: number; y: number; lit: boolean }[] }[] | null = null;
+let titleGorillaPositions: [{ x: number; y: number }, { x: number; y: number }] | null = null;
+
+function generateTitleBuildings(): void {
+  titleBuildings = [];
+  const colors = CITY_THEME_COLORS.classic;
+  const groundY = BOTTOM_LINE;
+
+  // Left cluster: 2-3 buildings in the leftmost ~80px
+  const leftBuildings = [
+    { x: 2, w: 30 + Math.floor(Math.random() * 10) },
+    { x: 36 + Math.floor(Math.random() * 5), w: 25 + Math.floor(Math.random() * 15) },
+    { x: 68 + Math.floor(Math.random() * 5), w: 25 + Math.floor(Math.random() * 10) },
+  ];
+  for (const lb of leftBuildings) {
+    const h = 60 + Math.floor(Math.random() * 60);
+    const y = groundY - h;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const windows: { x: number; y: number; lit: boolean }[] = [];
+    for (let wx = lb.x + 4; wx < lb.x + lb.w - 4; wx += 8) {
+      for (let wy = y + 4; wy < y + h - 6; wy += 10) {
+        windows.push({ x: wx, y: wy, lit: Math.random() < 0.6 });
+      }
+    }
+    titleBuildings.push({ x: lb.x, y, w: lb.w, h, color, windows });
+  }
+
+  // Right cluster: 2-3 buildings in the rightmost ~80px
+  const rightStart = WIDTH - 95;
+  const rightBuildings = [
+    { x: rightStart, w: 25 + Math.floor(Math.random() * 10) },
+    { x: rightStart + 30 + Math.floor(Math.random() * 5), w: 25 + Math.floor(Math.random() * 15) },
+    { x: rightStart + 62 + Math.floor(Math.random() * 5), w: 25 + Math.floor(Math.random() * 10) },
+  ];
+  for (const rb of rightBuildings) {
+    const h = 60 + Math.floor(Math.random() * 60);
+    const y = groundY - h;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const windows: { x: number; y: number; lit: boolean }[] = [];
+    for (let wx = rb.x + 4; wx < rb.x + rb.w - 4; wx += 8) {
+      for (let wy = y + 4; wy < y + h - 6; wy += 10) {
+        windows.push({ x: wx, y: wy, lit: Math.random() < 0.6 });
+      }
+    }
+    titleBuildings.push({ x: rb.x, y, w: rb.w, h, color, windows });
+  }
+
+  // Place gorillas on the tallest building in each cluster
+  let tallestLeft = titleBuildings[0];
+  for (let i = 1; i < 3; i++) {
+    if (titleBuildings[i].h > tallestLeft.h) tallestLeft = titleBuildings[i];
+  }
+  let tallestRight = titleBuildings[3];
+  for (let i = 4; i < titleBuildings.length; i++) {
+    if (titleBuildings[i].h > tallestRight.h) tallestRight = titleBuildings[i];
+  }
+
+  titleGorillaPositions = [
+    { x: tallestLeft.x + tallestLeft.w / 2 - GORILLA_WIDTH / 2, y: tallestLeft.y - GORILLA_HEIGHT },
+    { x: tallestRight.x + tallestRight.w / 2 - GORILLA_WIDTH / 2, y: tallestRight.y - GORILLA_HEIGHT },
+  ];
+}
+
 export function drawTitleScreen(p: p5): void {
+  if (!titleBuildings) generateTitleBuildings();
+
+  // Draw buildings
+  for (const b of titleBuildings!) {
+    p.fill(b.color);
+    p.noStroke();
+    p.rect(b.x, b.y, b.w, b.h);
+    for (const w of b.windows) {
+      p.fill(w.lit ? "#ffd700" : "#2a2a4a");
+      p.rect(w.x, w.y, 3, 5);
+    }
+  }
+
+  // Ground line
+  p.fill(30, 30, 50);
+  p.noStroke();
+  p.rect(0, BOTTOM_LINE, WIDTH, HEIGHT - BOTTOM_LINE);
+
+  // Dancing gorillas on buildings
+  const danceFrame = Math.floor(p.millis() / 300) % 2;
+  const leftArm = danceFrame === 0 ? "left_up" : "right_up";
+  const rightArm = danceFrame === 0 ? "right_up" : "left_up";
+
+  if (titleGorillaPositions) {
+    drawGorilla(p, {
+      x: titleGorillaPositions[0].x, y: titleGorillaPositions[0].y,
+      width: GORILLA_WIDTH, height: GORILLA_HEIGHT,
+      playerNum: 1, armState: leftArm,
+    });
+    drawGorilla(p, {
+      x: titleGorillaPositions[1].x, y: titleGorillaPositions[1].y,
+      width: GORILLA_WIDTH, height: GORILLA_HEIGHT,
+      playerNum: 2, armState: rightArm,
+    });
+  }
+
+  // Title text (centered, clear of buildings)
   p.fill(255, 200, 50);
   p.textSize(12);
   p.textAlign(p.CENTER, p.CENTER);
@@ -479,26 +581,13 @@ export function drawTitleScreen(p: p5): void {
   p.textSize(6);
   p.text("A 2P QBasic Classic", WIDTH / 2, HEIGHT / 3 + 22);
 
-  // Dancing gorillas
-  const danceFrame = Math.floor(p.millis() / 300) % 2;
-  const leftArm = danceFrame === 0 ? "left_up" : "right_up";
-  const rightArm = danceFrame === 0 ? "right_up" : "left_up";
-  const centerY = HEIGHT / 2 + 10;
-
-  drawGorilla(p, {
-    x: WIDTH / 2 - 50, y: centerY,
-    width: GORILLA_WIDTH, height: GORILLA_HEIGHT,
-    playerNum: 1, armState: leftArm,
-  });
-  drawGorilla(p, {
-    x: WIDTH / 2 + 30, y: centerY,
-    width: GORILLA_WIDTH, height: GORILLA_HEIGHT,
-    playerNum: 2, armState: rightArm,
-  });
-
-  p.fill(255);
-  p.textSize(7);
-  p.text("Press START", WIDTH / 2, HEIGHT * 3 / 4 + 15);
+  // Blinking "Press START"
+  const blink = Math.floor(p.millis() / 500) % 2 === 0;
+  if (blink) {
+    p.fill(255);
+    p.textSize(7);
+    p.text("Press START", WIDTH / 2, HEIGHT * 3 / 4 + 15);
+  }
 }
 
 export function drawConfigScreen(

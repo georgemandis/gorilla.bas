@@ -1,7 +1,7 @@
 {
   "$schema": "https://rcade.dev/manifest.schema.json",
   "name": "gorillas_bas",
-  "display_name": "GORILLAS.BAS",
+  "display_name": "GORILLA.BAS++",
   "description": " The legendary QBasic turn-based game featuring gorillas, cityscapes, real physics and exploding bananas.",
   "visibility": "public",
   "authors": [
