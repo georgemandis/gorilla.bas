@@ -21,6 +21,7 @@ import {
   CITY_THEME_COLORS,
   JUMP_ARC_MS,
   JUMP_ARC_HEIGHT,
+  AWARD_REVEAL_1_MS, AWARD_REVEAL_2_MS, AWARD_BONUS_MS, AWARD_START_VISIBLE_MS,
 } from "./config";
 import { getPlayerInput, getSystemInput } from "./input";
 import { generateCityscape, placeGorillas, generateWind, randomGorillaPlacements, reshuffleBuildings, checkGorillaGroundSupport, insertBuilding } from "./city";
@@ -38,6 +39,12 @@ import { getCostume } from "./costumes";
 import { playSound, startPowerHum, updatePowerHum, stopPowerHum } from "./sound";
 import { trySpawnCrate, updateCrateFall, drawCrate, collectCrate, consumeSelectedPowerUp, powerUpShortName } from "./powerups";
 import { applyPowerUpToProjectile, handleRicochet, handleWrapAround, splitClusterBomb, checkPortalEntry, applyHomingNudge, handleRubberBounce, applyDrunkWobble, handleBoomerangReturn } from "./powerup-behaviors";
+import {
+  createGameStats, recordThrow, recordHit, recordSelfKill, recordKill,
+  recordFirstThrowKill, recordDeath, recordPowerUp, recordJump, recordShield,
+  resetRoundThrows, pickStatAward, pickNameAward,
+} from "./stats";
+import type { GameStats, Award, NameAward } from "./stats";
 
 function createInitialState(): GameState {
   return {
@@ -165,6 +172,12 @@ const sketch = (p: p5) => {
     "Top banana!", "Go climb!", "*thumps*", "Ape out!",
   ];
   let costumes: [ReturnType<typeof getCostume>, ReturnType<typeof getCostume>] = [null, null];
+
+  let gameStats = createGameStats();
+  let gameOverAwards: { p1: Award; p2: Award; bonus: NameAward | null } | null = null;
+  let awardSound1Played = false;
+  let awardSound2Played = false;
+  let awardBonusSoundPlayed = false;
 
   // Bananality secret code tracking
   const KONAMI = ["up", "up", "down", "down", "left", "right", "left", "right", "b", "a"];
@@ -308,7 +321,7 @@ const sketch = (p: p5) => {
 
       case "game_over":
         updateGameOver(sys);
-        drawGameOver(p, state);
+        drawGameOver(p, state, gameOverAwards ?? undefined);
         break;
     }
 
@@ -448,6 +461,7 @@ const sketch = (p: p5) => {
     state.hazardDamageTimer = 0;
     state.lightningTarget = -1;
     // iceTurns, mirrorTurns, gravityTurns persist across rounds (like poisonTurns)
+    resetRoundThrows(gameStats);
     // Assign random starting items
     state.inventory[0] = [];
     state.inventory[1] = [];
@@ -627,10 +641,15 @@ const sketch = (p: p5) => {
     // Consume power-up first (skip on extra throw)
     const activePowerUp = state.isExtraThrow ? null : consumeSelectedPowerUp(state, playerIdx);
 
+    if (activePowerUp) {
+      recordPowerUp(gameStats, playerIdx, activePowerUp);
+    }
+
     // Shield: instant deploy, no projectile
     if (activePowerUp === "shield") {
       state.shield[playerIdx] = true;
       playSound("shield_deploy");
+      recordShield(gameStats, playerIdx);
       gorilla.armState = "down";
       resolveThrowEnd();
       return;
@@ -638,6 +657,7 @@ const sketch = (p: p5) => {
 
     // Jump: instant effect, no projectile
     if (activePowerUp === "jump") {
+      recordJump(gameStats, playerIdx);
       // Determine direction from angle
       let jumpRight = state.angle <= 90 || state.angle > 270;
       // Mirror inverts direction
@@ -683,6 +703,8 @@ const sketch = (p: p5) => {
     if (activePowerUp === "giant") {
       effectivePower *= GIANT_POWER_MULT;
     }
+
+    recordThrow(gameStats, playerIdx, effectivePower);
 
     state.projectile = createProjectile(startX, startY, state.angle, effectivePower);
 
@@ -806,6 +828,16 @@ const sketch = (p: p5) => {
         // Lava death check
         if (state.lavaActive && state.gorillas[i].y + GORILLA_HEIGHT >= state.lavaHeight) {
           state.hp[i as 0 | 1] = 0;
+          recordDeath(gameStats, i as 0 | 1, "lava");
+          const killerIdx = (state.currentPlayer - 1) as 0 | 1;
+          if (i === state.currentPlayer - 1) {
+            recordSelfKill(gameStats, killerIdx);
+          } else {
+            recordKill(gameStats, killerIdx);
+            if (gameStats.players[killerIdx].throwsThisRound === 1) {
+              recordFirstThrowKill(gameStats, killerIdx);
+            }
+          }
           state.lastHitPlayer = (i + 1) as 1 | 2;
           playSound("lava_death");
           state.phase = "victory";
@@ -858,6 +890,8 @@ const sketch = (p: p5) => {
       // Lava death check on landing
       if (state.lavaActive && gorilla.y + GORILLA_HEIGHT >= state.lavaHeight) {
         state.hp[anim.playerIdx] = 0;
+        recordDeath(gameStats, anim.playerIdx, "lava");
+        recordSelfKill(gameStats, anim.playerIdx);
         state.lastHitPlayer = (anim.playerIdx + 1) as 1 | 2;
         playSound("lava_death");
         state.phase = "victory";
@@ -1070,6 +1104,16 @@ const sketch = (p: p5) => {
             for (let li = 0; li < 2; li++) {
               if (state.gorillas[li].y + GORILLA_HEIGHT >= state.lavaHeight) {
                 state.hp[li as 0 | 1] = 0;
+                recordDeath(gameStats, li as 0 | 1, "lava");
+                const killerIdx = (state.currentPlayer - 1) as 0 | 1;
+                if (li === state.currentPlayer - 1) {
+                  recordSelfKill(gameStats, killerIdx);
+                } else {
+                  recordKill(gameStats, killerIdx);
+                  if (gameStats.players[killerIdx].throwsThisRound === 1) {
+                    recordFirstThrowKill(gameStats, killerIdx);
+                  }
+                }
                 state.lastHitPlayer = (li + 1) as 1 | 2;
                 playSound("lava_death");
                 state.phase = "victory";
@@ -1521,6 +1565,7 @@ const sketch = (p: p5) => {
         // A gorilla was hit — decrement HP
         const hitIdx = (state.lastHitPlayer - 1) as 0 | 1;
         state.hp[hitIdx] = Math.max(0, state.hp[hitIdx] - 1);
+        recordHit(gameStats, (state.currentPlayer - 1) as 0 | 1);
 
         if (state.hp[hitIdx] <= 0) {
           // Gorilla knocked out — score point
@@ -1528,12 +1573,21 @@ const sketch = (p: p5) => {
             // Self-hit KO: opponent scores and auto-taunts
             const opponentIdx = state.currentPlayer === 1 ? 1 : 0;
             state.scores[opponentIdx]++;
+            recordSelfKill(gameStats, (state.currentPlayer - 1) as 0 | 1);
+            recordKill(gameStats, opponentIdx as 0 | 1);
+            if (gameStats.players[opponentIdx].throwsThisRound === 1) {
+              recordFirstThrowKill(gameStats, opponentIdx as 0 | 1);
+            }
             const opponent: 1 | 2 = state.currentPlayer === 1 ? 2 : 1;
             triggerDance(opponent);
             triggerBubble(opponent, SELF_HIT_TAUNTS);
           } else {
             // Hit opponent KO: thrower scores
             state.scores[state.currentPlayer - 1]++;
+            recordKill(gameStats, (state.currentPlayer - 1) as 0 | 1);
+            if (gameStats.players[state.currentPlayer - 1].throwsThisRound === 1) {
+              recordFirstThrowKill(gameStats, (state.currentPlayer - 1) as 0 | 1);
+            }
           }
           state.victoryTimer = p.millis();
           state.phase = "victory";
@@ -1589,6 +1643,14 @@ const sketch = (p: p5) => {
       if (state.scores[0] >= state.targetScore || state.scores[1] >= state.targetScore) {
         state.phase = "game_over";
         state.gameOverEnteredAt = p.millis();
+        const winIdx = (state.scores[0] >= state.targetScore ? 0 : 1) as 0 | 1;
+        const p1Award = pickStatAward(gameStats.players[0], gameStats.players[1], winIdx === 0, state.inventory[0]);
+        const p2Award = pickStatAward(gameStats.players[1], gameStats.players[0], winIdx === 1, state.inventory[1]);
+        const bonusAward = pickNameAward(state.playerNames, gameStats, winIdx);
+        gameOverAwards = { p1: p1Award, p2: p2Award, bonus: bonusAward };
+        awardSound1Played = false;
+        awardSound2Played = false;
+        awardBonusSoundPlayed = false;
       } else {
         // Loser goes first next round
         if (state.lastHitPlayer !== null) {
@@ -1913,8 +1975,24 @@ const sketch = (p: p5) => {
   }
 
   function updateGameOver(sys: ReturnType<typeof getSystemInput>) {
-    if ((sys.onePlayer && !prevStart1P) || (sys.twoPlayer && !prevStart2P)) {
+    const elapsed = p.millis() - state.gameOverEnteredAt;
+    if (!awardSound1Played && elapsed >= AWARD_REVEAL_1_MS) {
+      playSound("award_reveal_1");
+      awardSound1Played = true;
+    }
+    if (!awardSound2Played && elapsed >= AWARD_REVEAL_2_MS) {
+      playSound("award_reveal_2");
+      awardSound2Played = true;
+    }
+    if (!awardBonusSoundPlayed && gameOverAwards?.bonus && elapsed >= AWARD_BONUS_MS) {
+      playSound("award_bonus");
+      awardBonusSoundPlayed = true;
+    }
+
+    if (elapsed >= AWARD_START_VISIBLE_MS && ((sys.onePlayer && !prevStart1P) || (sys.twoPlayer && !prevStart2P))) {
       state = createInitialState();
+      gameStats = createGameStats();
+      gameOverAwards = null;
       lastAngles = [INITIAL_ANGLE_P1, INITIAL_ANGLE_P2];
       costumes = [getCostume(state.playerNames[0]), getCostume(state.playerNames[1])];
     }
@@ -2171,6 +2249,9 @@ const sketch = (p: p5) => {
         state.hazardDamageTimer = p.millis();
         if (state.hp[playerIdx] <= 0) {
           state.hp[playerIdx] = 0;
+          recordDeath(gameStats, playerIdx, "fire");
+          const oppIdx = (playerIdx === 0 ? 1 : 0) as 0 | 1;
+          recordKill(gameStats, oppIdx);
           state.lastHitPlayer = state.currentPlayer;
           state.phase = "victory";
           state.victoryTimer = p.millis();
@@ -2213,6 +2294,9 @@ const sketch = (p: p5) => {
           playSound("fire_damage");
           if (state.hp[playerIdx] <= 0) {
             state.hp[playerIdx] = 0;
+            recordDeath(gameStats, playerIdx, "lightning");
+            const oppIdx = (playerIdx === 0 ? 1 : 0) as 0 | 1;
+            recordKill(gameStats, oppIdx);
             state.lastHitPlayer = state.currentPlayer;
             state.phase = "victory";
             state.victoryTimer = p.millis();
