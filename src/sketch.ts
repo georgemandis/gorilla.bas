@@ -14,6 +14,7 @@ import {
   SKY_COLORS, GROUND_COLORS,
   POISON_TURNS, POISON_POWER_CAP, ICE_TURNS, MIRROR_TURNS, GRAVITY_TURNS,
   ALL_POWERUP_TYPES, GIANT_POWER_MULT, GIANT_HITBOX_MULT, HP_OPTIONS, STARTING_ITEMS_OPTIONS,
+  LAVA_HEIGHT_OFFSET, FIZZLE_BUBBLE_MS, STORM_LIGHTNING_DELAY_MS, FIRE_DAMAGE_PER_TURN,
   EARTHQUAKE_SHAKE_MS,
   FALLING_SPEED,
   CONSTRUCTION_HEIGHT_ADD,
@@ -87,6 +88,15 @@ function createInitialState(): GameState {
     jumpAnim: null,
     floatingText: null,
     startingItems: 0,
+    burningBuildings: new Set<number>(),
+    lavaActive: false,
+    lavaHeight: BOTTOM_LINE,
+    stormActive: false,
+    fizzleTimer: 0,
+    fizzlePlayerIdx: 0,
+    hazardDamageStep: 0,
+    hazardDamageTimer: 0,
+    lightningTarget: -1,
   };
 }
 
@@ -422,6 +432,14 @@ const sketch = (p: p5) => {
     state.fallingGorillas = [null, null];
     state.jumpAnim = null;
     state.floatingText = null;
+    state.burningBuildings = new Set<number>();
+    state.lavaActive = false;
+    state.lavaHeight = BOTTOM_LINE;
+    state.stormActive = false;
+    state.fizzleTimer = 0;
+    state.hazardDamageStep = 0;
+    state.hazardDamageTimer = 0;
+    state.lightningTarget = -1;
     // iceTurns, mirrorTurns, gravityTurns persist across rounds (like poisonTurns)
     // Assign random starting items
     state.inventory[0] = [];
@@ -1505,6 +1523,14 @@ const sketch = (p: p5) => {
     state.isExtraThrow = false;
     state.activeSubProjectiles = [];
     state.portals = [null, null];
+    state.burningBuildings = new Set<number>();
+    state.lavaActive = false;
+    state.lavaHeight = BOTTOM_LINE;
+    state.stormActive = false;
+    state.fizzleTimer = 0;
+    state.hazardDamageStep = 0;
+    state.hazardDamageTimer = 0;
+    state.lightningTarget = -1;
     state.iceTurns = [0, 0];
     state.mirrorTurns = [0, 0];
     state.gravityTurns = [0, 0];
