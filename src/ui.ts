@@ -603,12 +603,12 @@ export function drawInventoryHUD(p: p5, state: GameState): void {
     const playerIdx = (state.currentPlayer - 1) as 0 | 1;
     const inv = state.inventory[playerIdx];
 
-    // Panel dimensions — jump row + divider + inventory items
+    // Panel dimensions — normal + jump rows + divider + inventory items
     const itemH = 12;
-    const jumpRowH = itemH;
+    const permanentRowsH = itemH * 2; // normal + jump
     const dividerH = 4;
-    const inventoryH = inv.length > 0 ? Math.min(inv.length * itemH, 120 - jumpRowH - dividerH) : 0;
-    const panelH = jumpRowH + dividerH + inventoryH + 8;
+    const inventoryH = inv.length > 0 ? Math.min(inv.length * itemH, 120 - permanentRowsH - dividerH) : 0;
+    const panelH = permanentRowsH + dividerH + inventoryH + 8;
     const panelW = 80;
     const panelX = state.currentPlayer === 1 ? 4 : WIDTH - panelW - 4;
     const panelY = 20;
@@ -625,8 +625,29 @@ export function drawInventoryHUD(p: p5, state: GameState): void {
     p.rect(panelX, panelY, panelW, panelH);
     p.noStroke();
 
-    // Jump row (always first)
-    const jumpY = panelY + 4;
+    // Normal banana row (always first, index -2)
+    const normalY = panelY + 4;
+    const isNormalSelected = state.selectedSlotIndex === -2;
+
+    if (isNormalSelected) {
+      p.fill(255, 255, 100, 40);
+      p.noStroke();
+      p.rect(panelX + 2, normalY - 1, panelW - 4, itemH);
+    }
+
+    // Normal banana icon (yellow arc)
+    p.fill(255, 220, 50);
+    p.noStroke();
+    p.arc(panelX + 10, normalY + 5, 8, 6, Math.PI, Math.PI * 2);
+
+    // Normal label
+    p.textSize(5);
+    p.textAlign(p.LEFT, p.TOP);
+    p.fill(isNormalSelected ? 255 : 180);
+    p.text("BANANA", panelX + 18, normalY + 2);
+
+    // Jump row (index -1)
+    const jumpY = normalY + itemH;
     const isJumpSelected = state.selectedSlotIndex === -1;
     const isJumpBlocked = state.poisonTurns[playerIdx] > 0 || state.iceTurns[playerIdx] > 0;
 
@@ -706,20 +727,15 @@ export function drawInventoryHUD(p: p5, state: GameState): void {
     }
 
     // Hint text for focused item
-    if (state.selectedPowerUp) {
-      const hint = powerUpHint(state.selectedPowerUp);
-      p.fill(200, 200, 150);
-      p.noStroke();
-      p.textSize(4);
-      if (state.currentPlayer === 1) {
-        p.textAlign(p.LEFT, p.TOP);
-        p.text(hint, panelX + 2, panelY + panelH + 3);
-      } else {
-        p.textAlign(p.RIGHT, p.TOP);
-        p.text(hint, panelX + panelW - 2, panelY + panelH + 3);
-      }
+    let hint = "";
+    if (state.selectedSlotIndex === -2) {
+      hint = "A good old banana.";
     } else if (isJumpSelected) {
-      const hint = isJumpBlocked ? "Poison/ice blocks jumping." : "Leap to next building.";
+      hint = isJumpBlocked ? "Poison/ice blocks jumping." : "Leap to next building.";
+    } else if (state.selectedPowerUp) {
+      hint = powerUpHint(state.selectedPowerUp);
+    }
+    if (hint) {
       p.fill(200, 200, 150);
       p.noStroke();
       p.textSize(4);

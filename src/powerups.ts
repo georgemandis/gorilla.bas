@@ -114,14 +114,23 @@ export function cycleSelectedPowerUp(state: GameState, playerIdx: 0 | 1): void {
 
 export function consumeSelectedPowerUp(state: GameState, playerIdx: 0 | 1): PowerUpType | null {
   const selected = state.selectedPowerUp;
-  if (!selected || state.selectedSlotIndex === -1) return null;
+  if (!selected) return null;
+
+  // Jump is permanent — return it without consuming from inventory
+  if (selected === "jump") {
+    state.selectedPowerUp = null;
+    state.selectedSlotIndex = -2;
+    return "jump";
+  }
+
+  if (state.selectedSlotIndex < 0) return null;
 
   const inv = state.inventory[playerIdx];
   if (state.selectedSlotIndex < inv.length) {
     inv.splice(state.selectedSlotIndex, 1);
   }
   state.selectedPowerUp = null;
-  state.selectedSlotIndex = -1;
+  state.selectedSlotIndex = -2;
   return selected;
 }
 

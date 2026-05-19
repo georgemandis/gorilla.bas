@@ -70,7 +70,7 @@ function createInitialState(): GameState {
     crate: null,
     inventory: [[], []],
     selectedPowerUp: null,
-    selectedSlotIndex: -1,
+    selectedSlotIndex: -2,
     inventoryOpen: false,
     inventoryScrollOffset: 0,
     extraThrowRemaining: false,
@@ -115,6 +115,8 @@ const sketch = (p: p5) => {
   let clouds: { x: number; y: number; w: number; h: number }[] = [];
   let prevB1 = false;
   let prevB2 = false;
+  let savedPowerUp: import("./types").PowerUpType | null = null;
+  let savedSlotIndex = -2;
   let prevStart1P = false;
   let prevStart2P = false;
   let prevTauntUp = false;
@@ -406,7 +408,7 @@ const sketch = (p: p5) => {
     state.extraThrowRemaining = false;
     state.isExtraThrow = false;
     state.selectedPowerUp = null;
-    state.selectedSlotIndex = -1;
+    state.selectedSlotIndex = -2;
     state.inventoryOpen = false;
     state.inventoryScrollOffset = 0;
     state.hp = [state.maxHP, state.maxHP];
@@ -447,8 +449,7 @@ const sketch = (p: p5) => {
     const prevA = state.currentPlayer === 1 ? prevA1 : prevA2;
 
     if (state.inventoryOpen) {
-      // Inventory HUD is open — dpad up/down navigates, B confirms, A cancels
-      // selectedSlotIndex: -1 = jump (virtual top item), 0+ = inventory slots
+      // HUD navigation: -2 = NORMAL, -1 = JUMP, 0+ = inventory slots
       const inv = state.inventory[playerIdx];
       const curUp = input.dpadUp;
       const curDown = input.dpadDown;
@@ -461,13 +462,23 @@ const sketch = (p: p5) => {
             state.inventoryScrollOffset = state.selectedSlotIndex;
           }
         } else if (state.selectedSlotIndex === 0) {
+          // Move from first inventory item to jump
           state.selectedSlotIndex = -1;
+          state.selectedPowerUp = null;
+        } else if (state.selectedSlotIndex === -1) {
+          // Move from jump to normal
+          state.selectedSlotIndex = -2;
           state.selectedPowerUp = null;
         }
         playSound("powerup_select");
       }
       if (curDown && !prevDpadDown) {
-        if (state.selectedSlotIndex === -1 && inv.length > 0) {
+        if (state.selectedSlotIndex === -2) {
+          // Move from normal to jump
+          state.selectedSlotIndex = -1;
+          state.selectedPowerUp = null;
+        } else if (state.selectedSlotIndex === -1 && inv.length > 0) {
+          // Move from jump to first inventory item
           state.selectedSlotIndex = 0;
           state.selectedPowerUp = inv[0];
         } else if (state.selectedSlotIndex >= 0 && state.selectedSlotIndex < inv.length - 1) {
@@ -475,8 +486,8 @@ const sketch = (p: p5) => {
           state.selectedPowerUp = inv[state.selectedSlotIndex];
           const itemH = 12;
           const dividerH = 4;
-          const jumpRowH = itemH;
-          const inventoryH = inv.length > 0 ? Math.min(inv.length * itemH, 120 - jumpRowH - dividerH) : 0;
+          const permanentRowsH = itemH * 2; // normal + jump
+          const inventoryH = inv.length > 0 ? Math.min(inv.length * itemH, 120 - permanentRowsH - dividerH) : 0;
           const maxVisible = Math.floor(inventoryH / itemH);
           if (maxVisible > 0 && state.selectedSlotIndex >= state.inventoryScrollOffset + maxVisible) {
             state.inventoryScrollOffset = state.selectedSlotIndex - maxVisible + 1;
@@ -489,10 +500,17 @@ const sketch = (p: p5) => {
 
       // B confirms selection and closes
       if (input.b && !prevB) {
-        if (state.selectedSlotIndex === -1) {
+        if (state.selectedSlotIndex === -2) {
+          // Normal banana — clear power-up
+          state.selectedPowerUp = null;
+          state.inventoryOpen = false;
+          state.inventoryScrollOffset = 0;
+          playSound("powerup_select");
+        } else if (state.selectedSlotIndex === -1) {
+          // Jump
           const isBlocked = state.poisonTurns[playerIdx] > 0 || state.iceTurns[playerIdx] > 0;
           if (isBlocked) {
-            playSound("crate_destroy");
+            playSound("crate_destroy"); // denied buzzer
           } else {
             state.selectedPowerUp = "jump";
             state.inventoryOpen = false;
@@ -500,24 +518,27 @@ const sketch = (p: p5) => {
             playSound("powerup_select");
           }
         } else {
+          // Inventory item
           state.inventoryOpen = false;
           state.inventoryScrollOffset = 0;
           playSound("powerup_select");
         }
       }
 
-      // A cancels — deselect and close
+      // A cancels — restore previous selection and close
       if (input.a && !prevA) {
-        state.selectedPowerUp = null;
-        state.selectedSlotIndex = -1;
+        state.selectedPowerUp = savedPowerUp;
+        state.selectedSlotIndex = savedSlotIndex;
         state.inventoryOpen = false;
         state.inventoryScrollOffset = 0;
       }
     } else {
-      // B opens inventory HUD (always available — jump is permanent)
+      // B opens inventory HUD
       if (input.b && !prevB) {
+        savedPowerUp = state.selectedPowerUp;
+        savedSlotIndex = state.selectedSlotIndex;
         state.inventoryOpen = true;
-        state.selectedSlotIndex = -1; // Start at jump
+        state.selectedSlotIndex = -2; // Start at NORMAL
         state.selectedPowerUp = null;
         playSound("powerup_select");
       }
@@ -1466,7 +1487,7 @@ const sketch = (p: p5) => {
     konamiSpinAccum = 0;
     konamiPlayer = null;
     state.selectedPowerUp = null;
-    state.selectedSlotIndex = -1;
+    state.selectedSlotIndex = -2;
     state.inventoryOpen = false;
     state.inventoryScrollOffset = 0;
     state.extraThrowRemaining = false;
@@ -1899,7 +1920,7 @@ const sketch = (p: p5) => {
   function switchPlayer() {
     state.currentPlayer = state.currentPlayer === 1 ? 2 : 1;
     state.selectedPowerUp = null;
-    state.selectedSlotIndex = -1;
+    state.selectedSlotIndex = -2;
     state.inventoryOpen = false;
     state.inventoryScrollOffset = 0;
     state.isExtraThrow = false;

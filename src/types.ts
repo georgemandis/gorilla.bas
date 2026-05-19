@@ -152,7 +152,7 @@ export interface GameState {
   crate: PowerUpCrate | null;
   inventory: [PowerUpType[], PowerUpType[]];
   selectedPowerUp: PowerUpType | null;
-  selectedSlotIndex: number;          // -1 = jump (permanent), 0+ = inventory slot
+  selectedSlotIndex: number;          // -2 = normal banana, -1 = jump, 0+ = inventory slot
   inventoryOpen: boolean;
   inventoryScrollOffset: number;
   extraThrowRemaining: boolean;
