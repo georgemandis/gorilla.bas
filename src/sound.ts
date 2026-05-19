@@ -6,7 +6,7 @@ function getCtx(): AudioContext {
   return ctx;
 }
 
-export type SoundName = "throw" | "explosion" | "victory" | "hit" | "aim_tick" | "power_lock" | "taunt_dance" | "taunt_bubble" | "bananality_omen" | "bananality_impact" | "bananality_reveal" | "crate_collect" | "crate_destroy" | "crate_land" | "powerup_select" | "cluster_split" | "confetti_pop" | "teleport_zap" | "poison_hit" | "portal_whoosh" | "portal_place" | "ice_hit" | "mirror_hit" | "gravity_hit" | "shield_deploy" | "shield_break" | "rubber_bounce" | "homing_lock" | "ghost_whoosh" | "giant_thud" | "boomerang_return" | "drunk_wobble" | "earthquake_rumble" | "demolition" | "construction" | "jump_launch" | "jump_land" | "fire_ignite" | "fire_damage" | "lava_activate" | "lava_death" | "thunder" | "fizzle";
+export type SoundName = "throw" | "explosion" | "victory" | "hit" | "aim_tick" | "power_lock" | "taunt_dance" | "taunt_bubble" | "bananality_omen" | "bananality_impact" | "bananality_reveal" | "crate_collect" | "crate_destroy" | "crate_land" | "powerup_select" | "cluster_split" | "confetti_pop" | "teleport_zap" | "poison_hit" | "portal_whoosh" | "portal_place" | "ice_hit" | "mirror_hit" | "gravity_hit" | "shield_deploy" | "shield_break" | "rubber_bounce" | "homing_lock" | "ghost_whoosh" | "giant_thud" | "boomerang_return" | "drunk_wobble" | "earthquake_rumble" | "demolition" | "construction" | "jump_launch" | "jump_land" | "fire_ignite" | "fire_damage" | "lava_activate" | "lava_death" | "thunder" | "fizzle" | "award_reveal_1" | "award_reveal_2" | "award_bonus";
 
 export function playSound(name: SoundName): void {
   try {
@@ -54,6 +54,9 @@ export function playSound(name: SoundName): void {
       case "lava_death": playLavaDeath(); break;
       case "thunder": playThunder(); break;
       case "fizzle": playFizzle(); break;
+      case "award_reveal_1": playAwardReveal1(); break;
+      case "award_reveal_2": playAwardReveal2(); break;
+      case "award_bonus": playAwardBonus(); break;
     }
   } catch {
     // Audio not available — fail silently
@@ -937,4 +940,55 @@ function playFizzle() {
   osc.connect(gain).connect(c.destination);
   osc.start();
   osc.stop(c.currentTime + 0.2);
+}
+
+function playAwardReveal1() {
+  // Short ascending chime
+  const c = getCtx();
+  [523, 659, 784].forEach((freq, i) => {
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    osc.type = "sine";
+    const t = c.currentTime + i * 0.1;
+    osc.frequency.setValueAtTime(freq, t);
+    gain.gain.setValueAtTime(0.1, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+    osc.connect(gain).connect(c.destination);
+    osc.start(t);
+    osc.stop(t + 0.15);
+  });
+}
+
+function playAwardReveal2() {
+  // Short descending chime
+  const c = getCtx();
+  [784, 659, 523].forEach((freq, i) => {
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    osc.type = "sine";
+    const t = c.currentTime + i * 0.1;
+    osc.frequency.setValueAtTime(freq, t);
+    gain.gain.setValueAtTime(0.1, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+    osc.connect(gain).connect(c.destination);
+    osc.start(t);
+    osc.stop(t + 0.15);
+  });
+}
+
+function playAwardBonus() {
+  // Sparkle chime for name bonus
+  const c = getCtx();
+  [1047, 1319, 1568, 2093].forEach((freq, i) => {
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    osc.type = "triangle";
+    const t = c.currentTime + i * 0.08;
+    osc.frequency.setValueAtTime(freq, t);
+    gain.gain.setValueAtTime(0.08, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+    osc.connect(gain).connect(c.destination);
+    osc.start(t);
+    osc.stop(t + 0.2);
+  });
 }
