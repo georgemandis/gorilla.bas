@@ -778,6 +778,7 @@ const sketch = (p: p5) => {
       }
     }
     state.activeSubProjectiles = [];
+    state.burningBuildings.clear();
     state.earthquakeTimer = p.millis();
     playSound("earthquake_rumble");
   }
@@ -800,6 +801,16 @@ const sketch = (p: p5) => {
       if (state.gorillas[i].y >= fall.targetY) {
         state.gorillas[i].y = fall.targetY;
         state.fallingGorillas[i] = null;
+
+        // Lava death check
+        if (state.lavaActive && state.gorillas[i].y + GORILLA_HEIGHT >= state.lavaHeight) {
+          state.hp[i as 0 | 1] = 0;
+          state.lastHitPlayer = (i + 1) as 1 | 2;
+          playSound("lava_death");
+          state.phase = "victory";
+          state.victoryTimer = p.millis();
+          return;
+        }
       }
     }
   }
@@ -842,6 +853,17 @@ const sketch = (p: p5) => {
       gorilla.armState = "down";
       state.jumpAnim = null;
       playSound("jump_land");
+
+      // Lava death check on landing
+      if (state.lavaActive && gorilla.y + GORILLA_HEIGHT >= state.lavaHeight) {
+        state.hp[anim.playerIdx] = 0;
+        state.lastHitPlayer = (anim.playerIdx + 1) as 1 | 2;
+        playSound("lava_death");
+        state.phase = "victory";
+        state.victoryTimer = p.millis();
+        return;
+      }
+
       resolveThrowEnd();
       return;
     }
@@ -1201,6 +1223,7 @@ const sketch = (p: p5) => {
           result.building.y = BOTTOM_LINE;
           result.building.windows = [];
           result.building.damage = [];
+          state.burningBuildings.delete(hitBuildingIdx);
           if (state.crate && state.crate.buildingIdx === hitBuildingIdx) {
             state.crate = null;
           }
@@ -2238,6 +2261,11 @@ const sketch = (p: p5) => {
 
     drawCity(p, state.buildings);
 
+    // Draw burning building overlays
+    if (state.burningBuildings.size > 0) {
+      drawBurningBuildings(p, state.buildings, state.burningBuildings);
+    }
+
     drawPortals(p, state.portals);
 
     // Draw crate
@@ -2327,11 +2355,32 @@ const sketch = (p: p5) => {
       }
     }
 
+    // Draw lava layer (on top of building bases and gorillas, below UI)
+    if (state.lavaActive) {
+      drawLava(p, state.lavaHeight);
+    }
+
     drawHP(p, state);
     drawTauntBubble(p);
-    drawSun(p, state.sunShocked, state.timeOfDay);
+
+    if (state.stormActive) {
+      drawStormClouds(p);
+    } else {
+      drawSun(p, state.sunShocked, state.timeOfDay);
+    }
+
     drawScores(p, state);
     drawInventoryHUD(p, state);
+
+    // Draw fizzle "?" bubble
+    if (state.fizzleTimer > 0) {
+      const fizzleElapsed = p.millis() - state.fizzleTimer;
+      if (fizzleElapsed < FIZZLE_BUBBLE_MS) {
+        drawFizzleBubble(p, state.gorillas[state.fizzlePlayerIdx], fizzleElapsed / FIZZLE_BUBBLE_MS);
+      } else {
+        state.fizzleTimer = 0;
+      }
+    }
   }
 
   function updateAndDrawClouds(p: p5) {
