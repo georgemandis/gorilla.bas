@@ -2501,7 +2501,7 @@ const sketch = (p: p5) => {
       if (c.x < -c.w) c.x = WIDTH + c.w;
 
       // Draw a soft cloud shape: overlapping ellipses
-      p.fill(200, 200, 220, 40);
+      p.fill(220, 220, 240, 90);
       p.ellipse(c.x, c.y, c.w, c.h);
       p.ellipse(c.x - c.w * 0.25, c.y + 1, c.w * 0.6, c.h * 0.7);
       p.ellipse(c.x + c.w * 0.25, c.y + 1, c.w * 0.6, c.h * 0.7);
