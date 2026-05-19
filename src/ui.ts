@@ -1,5 +1,6 @@
 import p5 from "p5";
 import type { GameState, TimeOfDay, PowerUpType, Portal } from "./types";
+import type { Award, NameAward } from "./stats";
 import {
   WIDTH,
   HEIGHT,
@@ -13,6 +14,8 @@ import {
   GORILLA_WIDTH,
   GORILLA_HEIGHT,
   CITY_THEME_COLORS,
+  AWARD_REVEAL_1_MS, AWARD_REVEAL_2_MS, AWARD_BONUS_MS,
+  AWARD_FADE_MS, AWARD_START_VISIBLE_MS,
 } from "./config";
 import { drawGorilla } from "./gorilla";
 
@@ -1106,26 +1109,265 @@ export function drawPortals(p: p5, portals: [Portal | null, Portal | null]): voi
   }
 }
 
-export function drawGameOver(p: p5, state: GameState): void {
+function drawStar(p: p5, cx: number, cy: number, innerR: number, outerR: number, points: number): void {
+  p.beginShape();
+  for (let i = 0; i < points * 2; i++) {
+    const angle = (i * p.PI) / points - p.HALF_PI;
+    const r = i % 2 === 0 ? outerR : innerR;
+    p.vertex(cx + Math.cos(angle) * r, cy + Math.sin(angle) * r);
+  }
+  p.endShape(p.CLOSE);
+}
+
+function drawAwardIcon(p: p5, awardId: string, x: number, y: number, alpha: number): void {
+  p.push();
+  p.noStroke();
+  const s = 8;
+  const a = alpha;
+
+  switch (awardId) {
+    case "friendly_fire":
+      p.fill(255, 50, 50, a);
+      p.circle(x, y - 1, s * 0.7);
+      p.triangle(x - 2, y + 1, x + 2, y + 1, x, y + 4);
+      p.fill(0, 0, 0, a);
+      p.circle(x - 1.5, y - 1.5, 1.5);
+      p.circle(x + 1.5, y - 1.5, 1.5);
+      break;
+    case "floor_is_lava":
+      p.fill(255, 120, 0, a);
+      p.beginShape();
+      p.vertex(x, y - 4);
+      p.vertex(x + 3, y + 1);
+      p.vertex(x + 2, y + 3);
+      p.vertex(x - 2, y + 3);
+      p.vertex(x - 3, y + 1);
+      p.endShape(p.CLOSE);
+      break;
+    case "thors_cousin":
+      p.fill(255, 255, 50, a);
+      p.beginShape();
+      p.vertex(x - 1, y - 4);
+      p.vertex(x + 2, y - 1);
+      p.vertex(x, y - 1);
+      p.vertex(x + 1, y + 4);
+      p.vertex(x - 2, y + 1);
+      p.vertex(x, y + 1);
+      p.endShape(p.CLOSE);
+      break;
+    case "the_arsonist":
+      p.fill(255, 100, 0, a);
+      p.triangle(x - 3, y + 3, x + 3, y + 3, x, y - 4);
+      p.fill(255, 200, 50, a);
+      p.triangle(x - 1.5, y + 3, x + 1.5, y + 3, x, y - 1);
+      break;
+    case "lucky_shot":
+      p.fill(255, 220, 50, a);
+      drawStar(p, x, y, 2, 4.5, 5);
+      break;
+    case "pacifist":
+      p.noFill();
+      p.stroke(100, 255, 100, a);
+      p.strokeWeight(1);
+      p.circle(x, y, s);
+      p.line(x, y - 4, x, y + 4);
+      p.line(x, y, x - 2.5, y + 3);
+      p.line(x, y, x + 2.5, y + 3);
+      break;
+    case "seismologist":
+      p.stroke(255, 150, 0, a);
+      p.strokeWeight(1);
+      p.noFill();
+      for (let w = -2; w <= 2; w += 2) {
+        p.beginShape();
+        for (let wx = -4; wx <= 4; wx++) {
+          p.vertex(x + wx, y + w + Math.sin(wx * 1.2) * 1.5);
+        }
+        p.endShape();
+      }
+      break;
+    case "demolition_derby":
+      p.fill(150, 150, 150, a);
+      p.circle(x, y + 1, s * 0.6);
+      p.stroke(150, 150, 150, a);
+      p.strokeWeight(1);
+      p.line(x, y - 2, x, y - 5);
+      break;
+    case "city_planner":
+      p.fill(255, 220, 50, a);
+      p.arc(x, y, s, s * 0.7, p.PI, 0);
+      p.rect(x - 5, y - 1, 10, 2);
+      break;
+    case "bunny":
+      p.fill(255, 150, 180, a);
+      p.ellipse(x - 2, y - 2, 3, 7);
+      p.ellipse(x + 2, y - 2, 3, 7);
+      break;
+    case "turtle":
+      p.fill(80, 180, 80, a);
+      p.arc(x, y, s, s * 0.8, p.PI, 0);
+      p.fill(60, 140, 60, a);
+      p.line(x, y - 3, x, y);
+      break;
+    case "the_sniper":
+      p.noFill();
+      p.stroke(255, 50, 50, a);
+      p.strokeWeight(1);
+      p.circle(x, y, s * 0.7);
+      p.line(x - 4, y, x + 4, y);
+      p.line(x, y - 4, x, y + 4);
+      break;
+    case "stormtrooper":
+      p.fill(255, 255, 0, a);
+      p.arc(x, y, 6, 4, 0, p.PI);
+      p.stroke(255, 0, 0, a);
+      p.strokeWeight(1);
+      p.line(x - 2, y - 3, x + 2, y + 1);
+      p.line(x + 2, y - 3, x - 2, y + 1);
+      break;
+    case "arms_dealer":
+      p.fill(200, 120, 40, a);
+      p.rect(x - 4, y - 4, 8, 8);
+      p.fill(255, 255, 255, a);
+      p.textSize(5);
+      p.textAlign(p.CENTER, p.CENTER);
+      p.text("?", x, y);
+      break;
+    case "hulk_smash":
+      p.stroke(255, 80, 80, a);
+      p.strokeWeight(1.5);
+      p.noFill();
+      p.line(x - 3, y + 3, x - 1, y);
+      p.line(x - 1, y, x + 2, y - 3);
+      p.circle(x + 2, y - 3, 3);
+      break;
+    case "butterfingers":
+      p.stroke(150, 150, 150, a);
+      p.strokeWeight(1);
+      p.noFill();
+      p.line(x - 3, y + 2, x, y);
+      p.line(x, y, x + 2, y + 1);
+      break;
+    case "hoarder":
+      p.fill(160, 100, 40, a);
+      p.circle(x - 2, y + 1, 4);
+      p.circle(x + 2, y + 1, 4);
+      p.circle(x, y - 2, 4);
+      break;
+    case "champion":
+      p.fill(255, 200, 50, a);
+      p.rect(x - 3, y - 2, 6, 5);
+      p.rect(x - 1, y + 3, 2, 2);
+      p.rect(x - 3, y + 5, 6, 1);
+      p.rect(x - 5, y - 2, 2, 3);
+      p.rect(x + 3, y - 2, 2, 3);
+      break;
+    case "participant":
+      p.fill(80, 150, 255, a);
+      p.rect(x - 2, y - 3, 4, 4);
+      p.triangle(x - 2, y + 1, x - 3, y + 5, x, y + 2);
+      p.triangle(x + 2, y + 1, x + 3, y + 5, x, y + 2);
+      break;
+    default:
+      p.fill(255, 255, 255, a);
+      drawStar(p, x, y, 1.5, 4, 4);
+      p.fill(255, 255, 200, a);
+      drawStar(p, x, y, 1, 2.5, 4);
+      break;
+  }
+
+  p.pop();
+}
+
+function drawAward(
+  p: p5,
+  award: Award | NameAward,
+  playerName: string | null,
+  color: [number, number, number],
+  y: number,
+  alpha: number,
+): void {
+  if (playerName) {
+    p.fill(color[0], color[1], color[2], alpha * 0.6);
+    p.textSize(4);
+    p.textAlign(p.CENTER, p.CENTER);
+    p.noStroke();
+    p.text(playerName, WIDTH / 2, y - 8);
+  }
+
+  drawAwardIcon(p, award.id, WIDTH / 2 - 60, y + 4, alpha);
+
+  p.fill(255, 208, 80, alpha);
+  p.textSize(6);
+  p.textAlign(p.CENTER, p.CENTER);
+  p.noStroke();
+  p.text(`"${award.name}"`, WIDTH / 2 + 5, y);
+
+  p.fill(153, 153, 153, alpha);
+  p.textSize(5);
+  p.text(award.flavorText, WIDTH / 2, y + 12);
+}
+
+export function drawGameOver(
+  p: p5,
+  state: GameState,
+  awards?: { p1: Award; p2: Award; bonus: NameAward | null },
+): void {
+  const elapsed = p.millis() - state.gameOverEnteredAt;
+
   p.fill(255, 100, 100);
   p.textSize(12);
   p.textAlign(p.CENTER, p.CENTER);
   p.noStroke();
-  p.text("GAME OVER", WIDTH / 2, HEIGHT / 3);
+  p.text("GAME OVER", WIDTH / 2, 30);
 
   p.fill(255);
-  p.textSize(6);
-  p.text(`${state.playerNames[0]}: ${state.scores[0]}`, WIDTH / 2, HEIGHT / 2 - 10);
-  p.text(`${state.playerNames[1]}: ${state.scores[1]}`, WIDTH / 2, HEIGHT / 2 + 14);
+  p.textSize(5);
+  p.text(
+    `${state.playerNames[0]}: ${state.scores[0]}  ${state.playerNames[1]}: ${state.scores[1]}`,
+    WIDTH / 2, 55,
+  );
 
-  const winner = state.scores[0] >= state.targetScore ? state.playerNames[0] : state.playerNames[1];
+  const winnerIdx = state.scores[0] >= state.targetScore ? 0 : 1;
+  const winner = state.playerNames[winnerIdx];
   p.fill(255, 200, 50);
   p.textSize(7);
-  p.text(`${winner} wins!`, WIDTH / 2, HEIGHT / 2 + 40);
+  p.text(`${winner} wins!`, WIDTH / 2, 72);
 
-  p.fill(150);
-  p.textSize(6);
-  p.text("Press START", WIDTH / 2, HEIGHT * 3 / 4);
+  if (!awards) {
+    p.fill(150);
+    p.textSize(6);
+    p.text("Press START", WIDTH / 2, HEIGHT * 3 / 4);
+    return;
+  }
+
+  const p1Color: [number, number, number] = [100, 180, 255];
+  const p2Color: [number, number, number] = [255, 120, 120];
+
+  let yPos = 100;
+  if (elapsed >= AWARD_REVEAL_1_MS) {
+    const alpha = Math.min(255, ((elapsed - AWARD_REVEAL_1_MS) / AWARD_FADE_MS) * 255);
+    drawAward(p, awards.p1, state.playerNames[0], p1Color, yPos, alpha);
+  }
+
+  yPos = 142;
+  if (elapsed >= AWARD_REVEAL_2_MS) {
+    const alpha = Math.min(255, ((elapsed - AWARD_REVEAL_2_MS) / AWARD_FADE_MS) * 255);
+    drawAward(p, awards.p2, state.playerNames[1], p2Color, yPos, alpha);
+  }
+
+  yPos = 184;
+  if (awards.bonus && elapsed >= AWARD_BONUS_MS) {
+    const alpha = Math.min(255, ((elapsed - AWARD_BONUS_MS) / AWARD_FADE_MS) * 255);
+    drawAward(p, awards.bonus, null, [255, 255, 255], yPos, alpha);
+  }
+
+  if (elapsed >= AWARD_START_VISIBLE_MS) {
+    p.fill(150);
+    p.textSize(6);
+    p.noStroke();
+    p.text("Press START", WIDTH / 2, 240);
+  }
 }
 
 export function drawBurningBuildings(p: p5, buildings: import("./types").Building[], burningSet: Set<number>): void {
