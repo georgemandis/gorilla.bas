@@ -25,10 +25,10 @@ export function drawScores(p: p5, state: GameState): void {
   p.noStroke();
 
   p.textAlign(p.LEFT, p.TOP);
-  p.text(`${state.playerNames[0]}: ${state.scores[0]}`, 4, 3);
+  p.text(`${state.playerNames[0]}: ${state.scores[0]}`, 4, 5);
 
   p.textAlign(p.RIGHT, p.TOP);
-  p.text(`${state.playerNames[1]}: ${state.scores[1]}`, WIDTH - 4, 3);
+  p.text(`${state.playerNames[1]}: ${state.scores[1]}`, WIDTH - 4, 5);
 }
 
 export function drawAngleIndicator(p: p5, state: GameState): void {
@@ -1187,9 +1187,9 @@ function drawAwardIcon(p: p5, awardId: string, x: number, y: number, alpha: numb
       }
       break;
     case "demolition_derby":
-      p.fill(150, 150, 150, a);
+      p.fill(210, 210, 210, a);
       p.circle(x, y + 1, s * 0.6);
-      p.stroke(150, 150, 150, a);
+      p.stroke(210, 210, 210, a);
       p.strokeWeight(1);
       p.line(x, y - 2, x, y - 5);
       break;
@@ -1204,9 +1204,9 @@ function drawAwardIcon(p: p5, awardId: string, x: number, y: number, alpha: numb
       p.ellipse(x + 2, y - 2, 3, 7);
       break;
     case "turtle":
-      p.fill(80, 180, 80, a);
+      p.fill(100, 220, 100, a);
       p.arc(x, y, s, s * 0.8, p.PI, 0);
-      p.fill(60, 140, 60, a);
+      p.fill(80, 180, 80, a);
       p.line(x, y - 3, x, y);
       break;
     case "the_sniper":
@@ -1242,14 +1242,14 @@ function drawAwardIcon(p: p5, awardId: string, x: number, y: number, alpha: numb
       p.circle(x + 2, y - 3, 3);
       break;
     case "butterfingers":
-      p.stroke(150, 150, 150, a);
+      p.stroke(210, 210, 210, a);
       p.strokeWeight(1);
       p.noFill();
       p.line(x - 3, y + 2, x, y);
       p.line(x, y, x + 2, y + 1);
       break;
     case "hoarder":
-      p.fill(160, 100, 40, a);
+      p.fill(220, 150, 60, a);
       p.circle(x - 2, y + 1, 4);
       p.circle(x + 2, y + 1, 4);
       p.circle(x, y - 2, 4);
@@ -1263,7 +1263,7 @@ function drawAwardIcon(p: p5, awardId: string, x: number, y: number, alpha: numb
       p.rect(x + 3, y - 2, 2, 3);
       break;
     case "participant":
-      p.fill(80, 150, 255, a);
+      p.fill(120, 180, 255, a);
       p.rect(x - 2, y - 3, 4, 4);
       p.triangle(x - 2, y + 1, x - 3, y + 5, x, y + 2);
       p.triangle(x + 2, y + 1, x + 3, y + 5, x, y + 2);
@@ -1288,7 +1288,7 @@ function drawAward(
   alpha: number,
 ): void {
   if (playerName) {
-    p.fill(color[0], color[1], color[2], alpha * 0.6);
+    p.fill(color[0], color[1], color[2], alpha * 0.85);
     p.textSize(4);
     p.textAlign(p.CENTER, p.CENTER);
     p.noStroke();
@@ -1297,13 +1297,13 @@ function drawAward(
 
   drawAwardIcon(p, award.id, WIDTH / 2 - 60, y + 4, alpha);
 
-  p.fill(255, 208, 80, alpha);
+  p.fill(255, 230, 80, alpha);
   p.textSize(6);
   p.textAlign(p.CENTER, p.CENTER);
   p.noStroke();
   p.text(`"${award.name}"`, WIDTH / 2 + 5, y);
 
-  p.fill(153, 153, 153, alpha);
+  p.fill(200, 200, 200, alpha);
   p.textSize(5);
   p.text(award.flavorText, WIDTH / 2, y + 12);
 }
@@ -1315,55 +1315,56 @@ export function drawGameOver(
 ): void {
   const elapsed = p.millis() - state.gameOverEnteredAt;
 
-  p.fill(255, 100, 100);
+  p.fill(255, 80, 80);
   p.textSize(12);
   p.textAlign(p.CENTER, p.CENTER);
   p.noStroke();
-  p.text("GAME OVER", WIDTH / 2, 30);
+  // Top boundary: top edge of sun body (SUN_Y - SUN_RADIUS = 13)
+  p.text("GAME OVER", WIDTH / 2, 22);
 
   p.fill(255);
   p.textSize(5);
   p.text(
     `${state.playerNames[0]}: ${state.scores[0]}  ${state.playerNames[1]}: ${state.scores[1]}`,
-    WIDTH / 2, 55,
+    WIDTH / 2, 42,
   );
 
   const winnerIdx = state.scores[0] >= state.targetScore ? 0 : 1;
   const winner = state.playerNames[winnerIdx];
-  p.fill(255, 200, 50);
+  p.fill(255, 230, 50);
   p.textSize(7);
-  p.text(`${winner} wins!`, WIDTH / 2, 72);
+  p.text(`${winner} wins!`, WIDTH / 2, 58);
 
   if (!awards) {
-    p.fill(150);
+    p.fill(220);
     p.textSize(6);
     p.text("Press START", WIDTH / 2, HEIGHT * 3 / 4);
     return;
   }
 
-  const p1Color: [number, number, number] = [100, 180, 255];
-  const p2Color: [number, number, number] = [255, 120, 120];
+  const p1Color: [number, number, number] = [120, 200, 255];
+  const p2Color: [number, number, number] = [255, 150, 150];
 
-  let yPos = 100;
+  let yPos = 85;
   if (elapsed >= AWARD_REVEAL_1_MS) {
     const alpha = Math.min(255, ((elapsed - AWARD_REVEAL_1_MS) / AWARD_FADE_MS) * 255);
     drawAward(p, awards.p1, state.playerNames[0], p1Color, yPos, alpha);
   }
 
-  yPos = 142;
+  yPos = 127;
   if (elapsed >= AWARD_REVEAL_2_MS) {
     const alpha = Math.min(255, ((elapsed - AWARD_REVEAL_2_MS) / AWARD_FADE_MS) * 255);
     drawAward(p, awards.p2, state.playerNames[1], p2Color, yPos, alpha);
   }
 
-  yPos = 184;
+  yPos = 169;
   if (awards.bonus && elapsed >= AWARD_BONUS_MS) {
     const alpha = Math.min(255, ((elapsed - AWARD_BONUS_MS) / AWARD_FADE_MS) * 255);
     drawAward(p, awards.bonus, null, [255, 255, 255], yPos, alpha);
   }
 
   if (elapsed >= AWARD_START_VISIBLE_MS) {
-    p.fill(150);
+    p.fill(220);
     p.textSize(6);
     p.noStroke();
     p.text("Press START", WIDTH / 2, 240);
