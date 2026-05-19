@@ -25,10 +25,10 @@ export function drawScores(p: p5, state: GameState): void {
   p.noStroke();
 
   p.textAlign(p.LEFT, p.TOP);
-  p.text(`${state.playerNames[0]}: ${state.scores[0]}`, 4, 5);
+  p.text(`${state.playerNames[0]}: ${state.scores[0]}`, 6, 5);
 
   p.textAlign(p.RIGHT, p.TOP);
-  p.text(`${state.playerNames[1]}: ${state.scores[1]}`, WIDTH - 4, 5);
+  p.text(`${state.playerNames[1]}: ${state.scores[1]}`, WIDTH - 6, 5);
 }
 
 export function drawAngleIndicator(p: p5, state: GameState): void {
@@ -702,14 +702,14 @@ export function drawInventoryHUD(p: p5, state: GameState): void {
 
   // Player 1 inventory dots — below score, left side
   for (let i = 0; i < state.inventory[0].length; i++) {
-    const x = 4 + i * spacing;
+    const x = 6 + i * spacing;
     const y = 12;
     drawPowerUpIcon(p, x, y, iconSize, state.inventory[0][i]);
   }
 
   // Player 2 inventory dots — below score, right side
   for (let i = 0; i < state.inventory[1].length; i++) {
-    const x = WIDTH - 4 - (state.inventory[1].length - i) * spacing;
+    const x = WIDTH - 6 - (state.inventory[1].length - i) * spacing;
     const y = 12;
     drawPowerUpIcon(p, x, y, iconSize, state.inventory[1][i]);
   }

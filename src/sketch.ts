@@ -1019,7 +1019,7 @@ const sketch = (p: p5) => {
         if (isEdgeMiss) {
           // Place portal at screen edge
           const edge: "left" | "right" = pos2.x < 0 ? "left" : "right";
-          placePortal(state, edge, edge === "left" ? 0 : WIDTH, pos2.y);
+          placePortal(state, edge, edge === "left" ? 8 : WIDTH - 8, pos2.y);
           state.projectile = null;
           playSound("portal_place");
           resolveThrowEnd();
