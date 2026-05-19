@@ -892,6 +892,8 @@ const sketch = (p: p5) => {
         state.hp[anim.playerIdx] = 0;
         recordDeath(gameStats, anim.playerIdx, "lava");
         recordSelfKill(gameStats, anim.playerIdx);
+        const jumpOppIdx = (anim.playerIdx === 0 ? 1 : 0) as 0 | 1;
+        recordKill(gameStats, jumpOppIdx);
         state.lastHitPlayer = (anim.playerIdx + 1) as 1 | 2;
         playSound("lava_death");
         state.phase = "victory";
