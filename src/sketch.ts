@@ -912,6 +912,17 @@ const sketch = (p: p5) => {
       applyHomingNudge(state.projectile, pos, targetX, state.wind, effectiveGravity);
     }
 
+    // Storm: activate when banana exits top of screen
+    if (state.projectile!.powerUpType === "storm" && pos.y < 0) {
+      if (!state.stormActive) {
+        state.stormActive = true;
+        playSound("thunder");
+      }
+      state.projectile = null;
+      resolveThrowEnd();
+      return;
+    }
+
     // Check if banana enters a portal (only for non-portal bananas when both portals exist)
     if (state.portals[0] && state.portals[1] && state.projectile.powerUpType !== "portal") {
       const portalResult = checkPortalEntry(state.projectile, pos, state.portals, effectiveGravity);
@@ -1002,6 +1013,40 @@ const sketch = (p: p5) => {
             resolveThrowEnd();
             return;
           }
+        }
+        // Fire: fizzle on ground/off-screen miss
+        if (state.projectile!.powerUpType === "fire") {
+          state.fizzleTimer = p.millis();
+          state.fizzlePlayerIdx = (state.currentPlayer - 1) as 0 | 1;
+          playSound("fizzle");
+          state.projectile = null;
+          resolveThrowEnd();
+          return;
+        }
+        // Lava: activate on ground hit only
+        if (state.projectile!.powerUpType === "lava") {
+          const lPos = getProjectilePositionWithGravity(state.projectile!, state.wind, effectiveGravity);
+          if (lPos.y >= BOTTOM_LINE && !state.lavaActive) {
+            state.lavaActive = true;
+            state.lavaHeight = BOTTOM_LINE - LAVA_HEIGHT_OFFSET;
+            playSound("lava_activate");
+          } else {
+            state.fizzleTimer = p.millis();
+            state.fizzlePlayerIdx = (state.currentPlayer - 1) as 0 | 1;
+            playSound("fizzle");
+          }
+          state.projectile = null;
+          resolveThrowEnd();
+          return;
+        }
+        // Storm: fizzle on ground/side miss
+        if (state.projectile!.powerUpType === "storm") {
+          state.fizzleTimer = p.millis();
+          state.fizzlePlayerIdx = (state.currentPlayer - 1) as 0 | 1;
+          playSound("fizzle");
+          state.projectile = null;
+          resolveThrowEnd();
+          return;
         }
         const pos2 = getProjectilePositionWithGravity(state.projectile!, state.wind, effectiveGravity);
         const isEdgeMiss = pos2.x < 0 || pos2.x > WIDTH || pos2.y < 0;
@@ -1158,6 +1203,32 @@ const sketch = (p: p5) => {
           playSound("explosion");
           break;
         }
+        if (projType === "fire") {
+          const hitBuildingIdx = state.buildings.indexOf(result.building);
+          if (hitBuildingIdx >= 0) {
+            state.burningBuildings.add(hitBuildingIdx);
+            playSound("fire_ignite");
+          }
+          state.projectile = null;
+          resolveThrowEnd();
+          break;
+        }
+        if (projType === "lava") {
+          state.fizzleTimer = p.millis();
+          state.fizzlePlayerIdx = (state.currentPlayer - 1) as 0 | 1;
+          playSound("fizzle");
+          state.projectile = null;
+          resolveThrowEnd();
+          break;
+        }
+        if (projType === "storm") {
+          state.fizzleTimer = p.millis();
+          state.fizzlePlayerIdx = (state.currentPlayer - 1) as 0 | 1;
+          playSound("fizzle");
+          state.projectile = null;
+          resolveThrowEnd();
+          break;
+        }
         explosionX = pos.x;
         explosionY = pos.y;
         const buildingExpRadius = state.projectile!.explosionRadius ?? EXPLOSION_RADIUS;
@@ -1261,6 +1332,37 @@ const sketch = (p: p5) => {
           state.explosionTimer = p.millis();
           state.lastHitPlayer = result.gorilla.playerNum;
           state.phase = "explosion";
+          break;
+        }
+        if (state.projectile?.powerUpType === "fire") {
+          const vidx = (result.gorilla.playerNum - 1) as 0 | 1;
+          const bIdx = findBuildingUnderGorilla(state.gorillas[vidx], state.buildings);
+          if (bIdx >= 0) {
+            state.burningBuildings.add(bIdx);
+            playSound("fire_ignite");
+          } else {
+            state.fizzleTimer = p.millis();
+            state.fizzlePlayerIdx = (state.currentPlayer - 1) as 0 | 1;
+            playSound("fizzle");
+          }
+          state.projectile = null;
+          resolveThrowEnd();
+          break;
+        }
+        if (state.projectile?.powerUpType === "lava") {
+          state.fizzleTimer = p.millis();
+          state.fizzlePlayerIdx = (state.currentPlayer - 1) as 0 | 1;
+          playSound("fizzle");
+          state.projectile = null;
+          resolveThrowEnd();
+          break;
+        }
+        if (state.projectile?.powerUpType === "storm") {
+          state.fizzleTimer = p.millis();
+          state.fizzlePlayerIdx = (state.currentPlayer - 1) as 0 | 1;
+          playSound("fizzle");
+          state.projectile = null;
+          resolveThrowEnd();
           break;
         }
         explosionX = pos.x;
